@@ -1,0 +1,6 @@
+@DNC.ProjectAudit.WebAPI_HostAddress = http://localhost:5299
+
+GET {{DNC.ProjectAudit.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

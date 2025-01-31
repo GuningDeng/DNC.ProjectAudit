@@ -26,7 +26,7 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
 
         public async Task<IEnumerable<SelectListQuestionDTO>> Handle(GetAllSelectListsQuery request, CancellationToken cancellationToken)
         {
-            return mapper.Map<IEnumerable<SelectListQuestionDTO>>(await uow.SelectListQuestionRepository.GetAllOpenQuestions());
+            return mapper.Map<IEnumerable<SelectListQuestionDTO>>(await uow.SelectListQuestionRepository.GetAllSelectListQuestions());
         }
     }
 

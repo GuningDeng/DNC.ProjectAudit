@@ -9,23 +9,23 @@ using System.Threading.Tasks;
 
 namespace DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions
 {
-    public class GetOpenQuestionsQuery : IRequest<IEnumerable<OpenQuestionDTO>>
+    public class GetAllOpenQuestionsQuery : IRequest<IEnumerable<OpenQuestionDTO>>
     {
         
     }
 
-    public class GetOpenQuestionsQueryHnadler : IRequestHandler<GetOpenQuestionsQuery, IEnumerable<OpenQuestionDTO>>
+    public class GetAllOpenQuestionsQueryHnadler : IRequestHandler<GetAllOpenQuestionsQuery, IEnumerable<OpenQuestionDTO>>
     {
         private readonly IUnitofWork uow;
         private readonly IMapper mapper;
 
-        public GetOpenQuestionsQueryHnadler(IUnitofWork uow, IMapper mapper)
+        public GetAllOpenQuestionsQueryHnadler(IUnitofWork uow, IMapper mapper)
         {
             this.uow = uow;
             this.mapper = mapper;
         }
 
-        public async Task<IEnumerable<OpenQuestionDTO>> Handle(GetOpenQuestionsQuery request, CancellationToken cancellationToken)
+        public async Task<IEnumerable<OpenQuestionDTO>> Handle(GetAllOpenQuestionsQuery request, CancellationToken cancellationToken)
         {
             return mapper.Map<IEnumerable<OpenQuestionDTO>>(await uow.OpenQuestionRepository.GetAllOpenQuestions());
         }

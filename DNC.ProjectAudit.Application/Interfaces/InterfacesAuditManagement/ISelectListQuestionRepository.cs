@@ -9,10 +9,10 @@ namespace DNC.ProjectAudit.Application.Interfaces.InterfacesAuditManagement
 {
     public interface ISelectListQuestionRepository : IGenericRepository<SelectListQuestion>
     {
-        Task<IEnumerable<SelectListQuestion>> GetAllOpenQuestions();
-        Task<IEnumerable<SelectListQuestion>> GetAllOpenQuestionsByDisplyPriorityIndication();
-        Task<IEnumerable<SelectListQuestion>> GetQuestionsByAudtiQuestionnaireId(int id);
-        Task<IEnumerable<SelectListQuestion>> GetOpenQuestionsByAudtiQuestionnaireIdAndByDisplyPriorityIndication(int id);
+        Task<IEnumerable<SelectListQuestion>> GetAllSelectListQuestions();
+        Task<IEnumerable<SelectListQuestion>> GetSelectListQuestionsByDisplayPriorityIndication();
+        Task<IEnumerable<SelectListQuestion>> GetAllSelectListQuestionsByAudtiQuestionnaireId(int id);
+        Task<IEnumerable<SelectListQuestion>> GetSelectListQuestionsByAudtiQuestionnaireIdAndByDisplayPriorityIndication(int id);
         SelectListQuestion GetQuestionByQuestionText(string questionText);
     }
 }

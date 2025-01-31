@@ -1,0 +1,34 @@
+﻿using AutoMapper;
+using DNC.ProjectAudit.Application.Interfaces;
+using MediatR;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace DNC.ProjectAudit.Application.CQRS.Audits
+{
+    public class GetAuditQuestionnaireByIdQuickQuery : IRequest<AuditQuestionnaireDTO>
+    {
+        public int Id { get; set; }
+    }
+
+    public class GetAuditQuestionnaireByIdQuickQueryHandler : IRequestHandler<GetAuditQuestionnaireByIdQuickQuery, AuditQuestionnaireDTO>
+    {
+        private readonly IUnitofWork uow;
+        private readonly IMapper mapper;
+
+        public GetAuditQuestionnaireByIdQuickQueryHandler(IUnitofWork uow, IMapper mapper)
+        {
+            this.uow = uow;
+            this.mapper = mapper;
+        }
+
+        public async Task<AuditQuestionnaireDTO> Handle(GetAuditQuestionnaireByIdQuickQuery request, CancellationToken cancellationToken)
+        {
+            return mapper.Map<AuditQuestionnaireDTO>(await uow.AuditQuestionnaireRepository.GetById(request.Id));
+        }
+    }
+
+}

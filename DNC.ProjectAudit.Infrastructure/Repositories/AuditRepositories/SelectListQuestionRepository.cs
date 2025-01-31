@@ -19,29 +19,29 @@ namespace DNC.ProjectAudit.Infrastructure.Repositories.AuditRepositories
             _context = context;
         }
 
-        public async Task<IEnumerable<SelectListQuestion>> GetAllOpenQuestions()
+        public async Task<IEnumerable<SelectListQuestion>> GetAllSelectListQuestions()
         {
             return await _context.SelectListQuestions.ToListAsync();
         }
 
-        public Task<IEnumerable<SelectListQuestion>> GetAllOpenQuestionsByDisplyPriorityIndication()
+        public async Task<IEnumerable<SelectListQuestion>> GetAllSelectListQuestionsByAudtiQuestionnaireId(int id)
         {
-            throw new NotImplementedException();
-        }
-
-        public Task<IEnumerable<SelectListQuestion>> GetOpenQuestionsByAudtiQuestionnaireIdAndByDisplyPriorityIndication(int id)
-        {
-            throw new NotImplementedException();
+            return await _context.SelectListQuestions.Where(s => s.QuestionAuditQuestionnaireId == id && s.Id > 0).ToListAsync();
         }
 
         public SelectListQuestion GetQuestionByQuestionText(string questionText)
         {
-            throw new NotImplementedException();
+            return _context.SelectListQuestions.Where(s => s.QuestionText == questionText).FirstOrDefault()!;
         }
 
-        public Task<IEnumerable<SelectListQuestion>> GetQuestionsByAudtiQuestionnaireId(int id)
+        public async Task<IEnumerable<SelectListQuestion>> GetSelectListQuestionsByAudtiQuestionnaireIdAndByDisplayPriorityIndication(int id)
         {
-            throw new NotImplementedException();
+            return await _context.SelectListQuestions.Where(s => s.QuestionAuditQuestionnaireId == id && s.Id > 0 && s.IsDisplay == true).OrderByDescending(s => s.PriorityIndication).ToListAsync();
+        }
+
+        public async Task<IEnumerable<SelectListQuestion>> GetSelectListQuestionsByDisplayPriorityIndication()
+        {
+            return await _context.SelectListQuestions.Where(s => s.Id > 0 && s.IsDisplay == true).OrderByDescending(s => s.PriorityIndication).ToListAsync();
         }
     }
 }

@@ -19,28 +19,28 @@ namespace DNC.ProjectAudit.Infrastructure.Repositories.AuditRepositories
             _context = context;
             
         }
-
+        //GetAllMultipleChoiceQuestions
         public async Task<IEnumerable<MultipleChoiceQuestion>> GetAllMultipleChoiceQuestions()
         {
             return await _context.MultipleChoiceQuestions.ToListAsync();
         }
-
+        //GetByQuestionText
         public MultipleChoiceQuestion GetByQuestionText(string questionText)
         {
             return _context.MultipleChoiceQuestions.Where(m => m.QuestionText == questionText).FirstOrDefault()!;
         }
-
+        //GetQuestionsByAudtiQuestionnaireId
         public async Task<IEnumerable<MultipleChoiceQuestion>> GetQuestionsByAudtiQuestionnaireId(int id)
         {
             return await _context.MultipleChoiceQuestions.Where(m => m.QuestionAuditQuestionnaireId == id).ToListAsync();
         }
-
-        public async Task<IEnumerable<MultipleChoiceQuestion>> GetQuestionsByAudtiQuestionnaireIdByIsDisplyPriorityIndication(int id)
+        //GetQuestionsByAudtiQuestionnaireIdByIsDisplayPriorityIndication
+        public async Task<IEnumerable<MultipleChoiceQuestion>> GetQuestionsByAudtiQuestionnaireIdByIsDisplayPriorityIndication(int id)
         {
             return await _context.MultipleChoiceQuestions.Where(m => m.QuestionAuditQuestionnaireId == id && m.Id > 0 && m.IsDisplay == true).OrderByDescending(m => m.PriorityIndication).ToListAsync();
         }
-
-        public async Task<IEnumerable<MultipleChoiceQuestion>> GetQuestionsByDisplyPriorityIndication()
+        //GetQuestionsByDisplayPriorityIndication
+        public async Task<IEnumerable<MultipleChoiceQuestion>> GetQuestionsByDisplayPriorityIndication()
         {
             return await _context.MultipleChoiceQuestions.OrderByDescending(m => m.PriorityIndication).ToListAsync();
         }

@@ -27,7 +27,7 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
         {
             var existing = await uow.MultipleChoiceQuestionRepository.GetById(request.MultipleChoiceQuestion!.Id);
             if (existing == null) throw new KeyNotFoundException("Question does not exist");
-            if (existing!.QuestionText != request.MultipleChoiceQuestion.QuestionText)
+            if (existing.QuestionText != request.MultipleChoiceQuestion.QuestionText)
             {
                 var exist = uow.MultipleChoiceQuestionRepository.GetByQuestionText(request.MultipleChoiceQuestion.QuestionText!);
                 if (exist != null) throw new ValidationException("The Question already exists");

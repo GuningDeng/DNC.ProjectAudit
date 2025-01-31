@@ -17,13 +17,34 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllQuestions()
         {
-            return Ok(await mediator.Send(new GetOpenQuestionsQuery()));
+            return Ok(await mediator.Send(new GetAllOpenQuestionsQuery()));
         }
         [HttpGet]
         [Route("{id}")]
         public async Task<IActionResult> GetQuestionById(int id)
         {
-            return Ok(await mediator.Send(new GetAllOpenQuestionByIdQuery { Id = id }));
+            return Ok(await mediator.Send(new GetOpenQuestionByIdQuery { Id = id }));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateQuestion([FromBody] OpenQuestionDTO openQuestion)
+        {
+            return Ok(await mediator.Send(new AddOpenQuestionCommand { OpenQuestion = openQuestion }));
+        }
+
+        [HttpPut]
+        [Route("{id}")]
+        public async Task<IActionResult> UpdateQuestion(int id, [FromBody] OpenQuestionDTO updateOpenQuestion)
+        {
+            if (id != updateOpenQuestion.Id) return BadRequest();
+            return Ok(await mediator.Send(new UpdateOpenQuestionByIdCommand { OpenQuestion = updateOpenQuestion }));
+        }
+        [HttpDelete]
+        [Route("{id}")]
+        public async Task<IActionResult> DeleteQuestion(int id)
+        {
+            await mediator.Send(new DeleteOpenQuestionByIdCommand { Id = id });
+            return NoContent();
         }
 
     }

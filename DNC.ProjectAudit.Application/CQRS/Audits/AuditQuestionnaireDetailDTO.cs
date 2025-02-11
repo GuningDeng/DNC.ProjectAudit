@@ -1,4 +1,9 @@
-﻿using DNC.ProjectAudit.Domain.Entities.AuditManagement.Questions;
+﻿using DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions;
+using DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions;
+using DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions;
+using DNC.ProjectAudit.Application.CQRS.People.ProjectManagers;
+using DNC.ProjectAudit.Application.CQRS.People.Supervisors;
+using DNC.ProjectAudit.Domain.Entities.AuditManagement.Questions;
 using DNC.ProjectAudit.Domain.Entities.Enums;
 using DNC.ProjectAudit.Domain.Entities.Person;
 using System;
@@ -36,15 +41,15 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits
         public Auditor? QuestionnaireAuditor { get; set; }
 
         [JsonIgnore]
-        public ICollection<MultipleChoiceQuestion>? MultipleChoiceQuestions { get; set; }
+        public ICollection<MultipleChoiceQuestionDTO>? MultipleChoiceQuestions { get; set; }
 
         [JsonIgnore]
-        public ICollection<OpenQuestion>? OpenQuestions { get; set; }
+        public ICollection<OpenQuestionDTO>? OpenQuestions { get; set; }
         [JsonIgnore]
-        public ICollection<SelectListQuestion>? SelectListQuestions { get; set; }
+        public ICollection<SelectListQuestionDTO>? SelectListQuestions { get; set; }
         [JsonIgnore]
-        public ProjectManager? QuestionnaireProjectManager { get; set; }
+        public ProjectManagerDetailDTO? QuestionnaireProjectManager { get; set; }
         [JsonIgnore]
-        public ICollection<Supervisor>? Supervisors { get; set; }
+        public ICollection<SupervisorDetailDTO>? Supervisors { get; set; }
     }
 }

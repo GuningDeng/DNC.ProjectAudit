@@ -1,0 +1,259 @@
+﻿@page "/AuditQuestionnaire/{QuestionnaireId:int}"
+
+@using System.Net.Http;
+@using System.Net.Http.Json;
+@using System.Threading.Tasks;
+@using DNC.ProjectAudit.Application.CQRS.Audits
+@using DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
+@using DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions
+@using DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
+@using DNC.ProjectAudit.AuditClient.Entities
+@using DNC.ProjectAudit.AuditClient.Services
+@inject HttpClient httpClient
+@inject NavigationManager Navigation
+
+@inject AuditQuestionnaireService AuditQuestionnaireService;
+
+<PageTitle>@PageName</PageTitle>
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-body">
+            @if (auditQuestionnaire == null || QuestionnaireInfo == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                <h5 class="card-title fw-bold">@auditQuestionnaire.Name</h5>
+                <div class="mb-3">Beschrijving: @auditQuestionnaire.Description</div>
+                <div class="mb-3">Gewest: @auditQuestionnaire.Region</div>
+                <div class="mb-3">Deadline voor inzending: @auditQuestionnaire.SubmissionDeadline</div>
+                <div class="mb-3">Is gestart: @auditQuestionnaire.IsStarted</div>
+                <div class="mb-3">Is voltooid: @auditQuestionnaire.IsCompleted</div>
+
+                <h6 class="mt-5 mb-3 fw-bold">Multiple choice Vraag</h6>
+
+                if (this.QuestionnaireInfo.MultipleChoiceInfos!.Count == 0)
+                {
+                    <p><em>No Questions</em></p>
+                }
+                else
+                {
+                    foreach (var choice in this.QuestionnaireInfo.MultipleChoiceInfos)
+                    {
+                        <div class="mb-3">
+                            <div class="mb-3 fw-bold">@(choice.Index+1). @choice.QuestionText</div>
+                            @{
+                                foreach (var option in choice.Options!)
+                                {
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                        name="question-@option.IsSelected" />
+                                        <label class="form-check-label">@option.Option</label>
+                                    </div>
+                                }
+                            }
+                            <div class="mt-2 mb-3">Antwoord: @choice.AnswerText</div>
+                            <div class="mb-3">Tonen voor gebruikers: @choice.IsDisplay</div>
+                            <div class="mb-3">Prioriteit: @choice.PriorityIndication</div>
+
+                        </div>
+
+                    }
+
+                }
+
+                <h6 class="mt-5 mb-3 fw-bold">Open Vraag</h6>
+                if (this.QuestionnaireInfo.OpenQuestionInfos!.Count == 0)
+                {
+                    <p><em>No Questions</em></p>
+                }
+                else
+                {
+                    foreach (var question in this.QuestionnaireInfo.OpenQuestionInfos)
+                    {
+                        <div class="mb-3">
+                            <div class="mb-3 fw-bold">@(question.Index + 1). @question.QuestionText</div>
+                            <div class="mb-3">
+                                <label class="form-label">Antwoorden</label>
+                                <textarea class="form-control" rows="3" value="Answer Text"></textarea>
+                            </div>
+
+                            <div class="mt-2 mb-3">Tonen voor gebruikers: @question.IsDisplay</div>
+                            <div class="mb-3">Prioriteit: @question.PriorityIndication</div>
+                        </div>
+                    }
+
+                }
+
+                <h6 class="mt-5 mb-3 fw-bold">Selectielijst</h6>
+                if (this.QuestionnaireInfo.SelectListInfos!.Count == 0)
+                {
+                    <p><em>No Questions</em></p>
+                }
+                else
+                {
+                    foreach (var question in this.QuestionnaireInfo.SelectListInfos)
+                    {
+                        <div class="mb-3">
+                            <div class="mb-3 fw-bold">@(question.Index+1). @question.QuestionText</div>
+                            <div class="mb-3">
+                                <select class="form-select">
+                                    @foreach (var option in question.Options!)
+                                    {
+                                        <option value="@option.IsSelected">@option.Option</option>
+                                    }
+
+                                </select>
+                            </div>
+                            <div class="mt-2 mb-3">Antwoord: @question.AnswerText</div>
+                            <div class="mb-3">Tonen voor gebruikers: @question.IsDisplay</div>
+                            <div class="mb-3">Prioriteit: @question.PriorityIndication</div>
+                        </div>
+                    }
+
+                }
+
+
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int QuestionnaireId { get; set; }
+
+    private const string PageName = "AuditQuestionnaire";
+
+    private AuditQuestionnaireDetailDTO? auditQuestionnaire;
+
+    private QuestionnaireInfo? QuestionnaireInfo = new QuestionnaireInfo();
+
+    private List<QuestionWithOptionInfoList>? questionWithOptionInfoLists = new List<QuestionWithOptionInfoList>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = await this.httpClient.GetAsync($"AuditQuestionnaires/{this.QuestionnaireId}");
+        if (request.IsSuccessStatusCode){
+            this.auditQuestionnaire = await AuditQuestionnaireService.GetAuditQuestionnaire(this.QuestionnaireId);
+            var choices = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+            var opens = await AuditQuestionnaireService.GetOpenQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+            var selectLists = await AuditQuestionnaireService.GetSelectListQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+            this.auditQuestionnaire.MultipleChoiceQuestions = choices;
+            this.auditQuestionnaire.OpenQuestions = opens;
+            this.auditQuestionnaire.SelectListQuestions = selectLists;
+
+            String name = this.auditQuestionnaire.Name!;
+            QuestionnaireInfo!.Name = this.auditQuestionnaire.Name;
+
+            List<QuestionWithOptionInfoList> multipleChoiceInfos = new List<QuestionWithOptionInfoList>();
+            
+            List<QuestionWithOptionInfoList> selectListInfos = new List<QuestionWithOptionInfoList>();
+            
+            List<OpenQuestionInfo> openQuestionInfos = new List<OpenQuestionInfo>();
+
+            int index = 0;
+            foreach(var choice in choices)
+            {
+                QuestionWithOptionInfoList question = new QuestionWithOptionInfoList();
+                List<OptionInfo> multiOptionInfos = new List<OptionInfo>();
+                
+                var options = choice.OptionText!.Split(";");
+                foreach(var option in options)
+                {
+                    OptionInfo optionInfo = new OptionInfo();
+                    optionInfo.Option = option;
+                    optionInfo.IsSelected = false;
+                    multiOptionInfos.Add(optionInfo);
+                }
+                question.QuestionText = choice.QuestionText;
+                question.Options = multiOptionInfos;
+                question.Index = index;
+                question.IsDisplay = choice.IsDisplay;
+                question.AnswerText = choice.AnswerText;
+                question.PriorityIndication = choice.PriorityIndication;
+                multipleChoiceInfos.Add(question);
+                index += 1;
+            }
+            foreach (var multi in multipleChoiceInfos)
+            {
+                Console.WriteLine($"multiOptionInfos :: {multi.Index} | {multi.Options!.Count}");
+                foreach(var opt in multi.Options)
+                {
+                    Console.WriteLine($" :: {opt.Option}");
+                }
+            }
+
+            index = 0;
+
+            foreach(var selection in selectLists)
+            {
+                QuestionWithOptionInfoList question = new QuestionWithOptionInfoList();
+                List<OptionInfo> selecteOptionInfos = new List<OptionInfo>();
+                var options = selection.OptionText!.Split(";");
+                foreach (var option in options)
+                {
+                    OptionInfo optionInfo = new OptionInfo();
+                    optionInfo.Option = option;
+                    optionInfo.IsSelected = false;
+                    selecteOptionInfos.Add(optionInfo);
+                }
+                question.QuestionText = selection.QuestionText;
+                question.Options = selecteOptionInfos;
+                question.Index = index;
+                question.IsDisplay = selection.IsDisplay;
+                question.AnswerText = selection.AnswerText;
+                question.PriorityIndication = selection.PriorityIndication;
+                selectListInfos.Add(question);
+
+                index += 1;
+
+            }
+
+            foreach (var select in selectListInfos)
+            {
+                Console.WriteLine($"selectOptionInfos :: {select.Index} | {select.Options!.Count}");
+                foreach (var opt in select.Options)
+                {
+                    Console.WriteLine($" :: {opt.Option}");
+                }
+            }
+
+            index = 0;
+            foreach(var question in opens)
+            {
+                OpenQuestionInfo openQuestionInfo = new OpenQuestionInfo();
+
+                openQuestionInfo.QuestionText = question.QuestionText;
+                openQuestionInfo.Index = index;
+                openQuestionInfo.IsDisplay = question.IsDisplay;
+                openQuestionInfo.AnswerText = question.AnswerText;
+                openQuestionInfo.PriorityIndication = question.PriorityIndication;
+
+                openQuestionInfos.Add(openQuestionInfo);
+
+                index += 1;
+            }
+
+            foreach (var quetion in openQuestionInfos)
+            {
+                Console.WriteLine($"openQuestionInfos :: {quetion.Index} | {quetion.QuestionText}");
+
+            }
+
+            QuestionnaireInfo.MultipleChoiceInfos = multipleChoiceInfos;
+            QuestionnaireInfo.SelectListInfos = selectListInfos;
+            QuestionnaireInfo.OpenQuestionInfos = openQuestionInfos;
+
+            Console.WriteLine($"QuestionnaireInfo :: {QuestionnaireInfo.Name} | {QuestionnaireInfo.MultipleChoiceInfos.Count} | {QuestionnaireInfo.SelectListInfos.Count} | {QuestionnaireInfo.OpenQuestionInfos.Count} ");
+
+        }
+        else{
+            Navigation.NavigateTo("/");
+            Console.WriteLine($"request.StatusCode :: {request.StatusCode}");
+        }
+    }
+
+}

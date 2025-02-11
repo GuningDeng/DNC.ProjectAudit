@@ -10,6 +10,7 @@
 @using System.Net.Http.Json;
 @using System.Threading.Tasks;
 @inject HttpClient httpClient
+@inject NavigationManager Navigation
 
 <PageTitle>@PageName</PageTitle>
 
@@ -123,6 +124,7 @@ else{
 
     private void ViewQuestionair(int id){
         Console.WriteLine($"view:: {id}");
+        Navigation.NavigateTo($"/AuditQuestionnaire/{id}");
     }
 
     private void ChangePage(int newPage)

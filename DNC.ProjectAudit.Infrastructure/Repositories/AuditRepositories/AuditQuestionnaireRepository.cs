@@ -36,6 +36,11 @@ namespace DNC.ProjectAudit.Infrastructure.Repositories.AuditRepositories
             return await _context.AuditQuestionnaires.Where(a => a.Region == region).ToListAsync();
         }
 
+        public async Task<AuditQuestionnaire> GetByName(string name)
+        {
+            return await _context.AuditQuestionnaires.FirstOrDefaultAsync(a => a.Name == name);
+        }
+
         public AuditQuestionnaire GetByTitle(string title)
         {
             return _context.AuditQuestionnaires.FirstOrDefault(a => a.Name == title)!;

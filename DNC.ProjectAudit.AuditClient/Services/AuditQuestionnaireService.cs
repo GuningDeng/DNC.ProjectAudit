@@ -28,6 +28,32 @@ namespace DNC.ProjectAudit.AuditClient.Services
             return await _httpClient.GetFromJsonAsync<AuditQuestionnaireDetailDTO>($"AuditQuestionnaires/{id}");
         }
 
+        public async Task<AuditQuestionnaireDetailDTO> GetAuditQuestionnaireByName(string name)
+        {
+            var existing = await _httpClient.GetFromJsonAsync<AuditQuestionnaireDetailDTO>($"AuditQuestionnaires/{name}/ByName");
+            //if (existing != null) throw new KeyNotFoundException("questionnaire exists already");
+            return existing!;
+        }
+
+        public async Task<HttpResponseMessage> PostAuditQuestionnaire(AuditQuestionnaireDetailDTO auditQuestionnaire)
+        {
+            var response = await _httpClient.PostAsJsonAsync("AuditQuestionnaires", auditQuestionnaire);
+            return response;
+        }
+
+        public async Task<HttpResponseMessage> UpdatedQuestionnaire(int id, AuditQuestionnaireDetailDTO auditQuestionnaire)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"AuditQuestionnaires/{id}", auditQuestionnaire);
+            return response;
+        }
+
+        public async Task<HttpResponseMessage> DeleteQuestionnaire(int id)
+        {
+            var response = await _httpClient.DeleteAsync($"AuditQuestionnaires/{id}");
+            return response;
+        }
+
+
         public async Task<List<MultipleChoiceQuestionDTO>> GetMultipleChoiceQuestionDTOs()
         {
             return await _httpClient.GetFromJsonAsync<List<MultipleChoiceQuestionDTO>>($"MultipleChoiceQuestions");

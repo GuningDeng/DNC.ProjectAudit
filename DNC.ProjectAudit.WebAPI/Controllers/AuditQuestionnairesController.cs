@@ -2,6 +2,7 @@
 using DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions;
 using DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions;
 using DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions;
+using DNC.ProjectAudit.Application.Exceptions;
 using DNC.ProjectAudit.Infrastructure.Repositories.AuditRepositories;
 using MediatR;
 using Microsoft.AspNetCore.Http;
@@ -35,7 +36,9 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> GetAuditQuestionnaireById(int id) 
         {
-            return Ok(await _mediator.Send(new GetAuditQuestionnaireByIdQuery { Id = id }));
+            var qeustionnaire = await _mediator.Send(new GetAuditQuestionnaireByIdQuery { Id = id });
+            if (qeustionnaire == null) return NotFound();
+            return Ok(qeustionnaire);
         }
 
         [HttpGet]
@@ -48,7 +51,15 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         [HttpPost]
         public async Task<IActionResult> CreateAuditQuestionnaire([FromBody] AuditQuestionnaireDetailDTO auditQuestionnaire)
         {
-            return Created("", await _mediator.Send(new AddAuditQuestionnaireCommand { AuditQuestionnaire = auditQuestionnaire }));
+            try
+            {
+                return Created("", await _mediator.Send(new AddAuditQuestionnaireCommand { AuditQuestionnaire = auditQuestionnaire }));
+            }
+            catch (ValidationException ex)
+            {
+                return BadRequest(ex.Message);
+            }
+            
         }
 
         [HttpPut]
@@ -65,6 +76,15 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         {
             await _mediator.Send(new DeleteAuditQuestionnaireCommand { Id = id});
             return NoContent();
+        }
+
+        [HttpGet]
+        [Route("{name}/ByName")]
+        public async Task<IActionResult> GetAuditQuestionnaireByName(string name)
+        {
+            var questionnaire = await _mediator.Send(new GetAuditQuestionnaireByNameQuery { Name = name });
+            if (questionnaire == null) return NotFound();
+            return Ok(questionnaire); 
         }
 
         [HttpGet]

@@ -1,7 +1,10 @@
 ﻿@page "/AuditQuestionnaires"
 @using DNC.ProjectAudit.Application.CQRS.Audits
 @using DNC.ProjectAudit.Application.CQRS.People.Auditors
+@using DNC.ProjectAudit.AuditClient.Components
 @using DNC.ProjectAudit.AuditClient.Services
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Web
 
 @inject AuditService AuditService
 @inject AuditQuestionnaireService AuditQuestionnaireService;
@@ -35,6 +38,7 @@ else{
                         <th scope="col">Deadline</th>
                         <th scope="col">Edit</th>
                         <th scope="col">View</th>
+                        <th scope="col">Delete</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,6 +60,11 @@ else{
                             <td>
                                 <button class="btn btn-link" @onclick="() => ViewQuestionair(question.Id)">
                                     <i class="fas fa-eye"></i> <!-- Font Awesome Eye Icon -->
+                                </button>
+                            </td>
+                            <td>
+                                <button class="btn btn-link" @onclick="() => ShowDialog(question.Id)">
+                                    <i class="fa fa-eraser"></i> <!-- Font Awesome eraser Icon -->
                                 </button>
                             </td>
                         </tr>
@@ -81,8 +90,16 @@ else{
                 </ul>
             </nav>
 
+
         </div>
     </div>
+}
+
+@if (isDialogVisible)
+{
+    <Dialog @bind-Visible="isDialogVisible" Title="Vragenlijst verwijderen" OnClose="CloseDialog" OnConfirm="ConfirmModal">
+        <p>Weet u zeker dat u de vragenlijst wilt verwijderen?</p>
+    </Dialog>
 }
 
 @code {
@@ -96,6 +113,9 @@ else{
     private int pageSize = 5; // Number of questionnaires per page
     private int TotalPages => (int)Math.Ceiling((double)auditQuestionnaireDetailDTOs!.Count / pageSize);
 
+    private int selectedId = 0;
+    private bool isDialogVisible = false;
+    
     protected override async Task OnInitializedAsync()
     {
         try
@@ -127,11 +147,46 @@ else{
         Navigation.NavigateTo($"/AuditQuestionnaire/{id}");
     }
 
+    private async Task DeleteQuestionair(int id){
+        // Console.WriteLine($"Delete:: {id}");
+        var response = await AuditQuestionnaireService.DeleteQuestionnaire(id);
+        if(response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Delete success:: {id}");
+        }
+        else
+        {
+            Console.WriteLine($"Delete failed:: {id}");
+        }
+
+    }
+
     private void ChangePage(int newPage)
     {
         if (newPage < 1 || newPage > TotalPages) return;
         currentPage = newPage;
         Console.WriteLine($"change page: {newPage++}");
+    }
+
+    private void ShowDialog(int id)
+    {
+        isDialogVisible = true;
+        this.selectedId = id;
+    }
+
+    private void CloseDialog()
+    {
+        isDialogVisible = false;
+    }
+
+    private async Task ConfirmModal()
+    {
+        await DeleteQuestionair(this.selectedId);
+        await Task.Delay(700);
+        isDialogVisible = false;
+
+        // Redirect
+        Navigation.NavigateTo("/AuditQuestionnaires", true);
     }
 
 }

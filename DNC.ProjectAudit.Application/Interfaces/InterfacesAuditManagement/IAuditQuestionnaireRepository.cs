@@ -14,5 +14,6 @@ namespace DNC.ProjectAudit.Application.Interfaces.InterfacesAuditManagement
         AuditQuestionnaire GetByTitle(string title);
         Task<IEnumerable<AuditQuestionnaire>> GetAllAuditQuestionnaires();
         Task<IEnumerable<AuditQuestionnaire>> GetAuditQuestionnairesByRegion(Region region);
+        Task<AuditQuestionnaire> GetByName(string name);
     }
 }

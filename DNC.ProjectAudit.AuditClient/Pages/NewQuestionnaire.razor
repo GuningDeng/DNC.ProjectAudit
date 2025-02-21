@@ -1,0 +1,122 @@
+﻿@page "/NewQuestionnaire"
+
+@using System.Net.Http;
+@using System.Net.Http.Json;
+@using DNC.ProjectAudit.Application.CQRS.Audits
+@using DNC.ProjectAudit.AuditClient.Components
+@using DNC.ProjectAudit.AuditClient.Entities
+@using DNC.ProjectAudit.AuditClient.Services
+@using DNC.ProjectAudit.Domain.Entities.Enums
+
+@inject HttpClient httpClient
+@inject NavigationManager Navigation
+
+@inject AuditQuestionnaireService AuditQuestionnaireService;
+
+
+<div class="container">
+    <div class="card">
+        <div class="card-header">
+            @PageName
+        </div>
+        <div class="card-body">
+
+            <EditForm Model="@questionnaireInfo" OnValidSubmit="@HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="form-group mb-3">
+                    <label for="name">Naam van enquête</label>
+                    <input id="name" class="form-control" @bind-value="@questionnaireInfo!.Name" />
+                    <ValidationMessage For="@(() => questionnaireInfo.Name)" />
+
+                </div>
+                <div class="form-group mb-3">
+                    <label for="description">Beschrijving van enquête</label>
+                    <input id="description" class="form-control" @bind-value="@questionnaireInfo!.Description" />
+                    <ValidationMessage For="@(() => questionnaireInfo.Description)" />
+
+                </div>
+                <div class="form-group mb-3">
+                    <label>Gewest</label>
+                    <div>
+                        @foreach(var region in Enum.GetValues(typeof(Region)))
+                        {
+                            <div class="form-check form-check-inline">
+                                <input type="radio" class="form-check-input" id="@region" name="region" value="@region" @onchange="(e) => OnOptionSelected(e)" />
+                                <label class="form-check-label" for="@region">@region</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="submissionDeadline">Deadline voor inzending</label>
+                    <input type="date" class="form-control" @bind-value="@questionnaireInfo.SubmissionDeadline" />
+                    <ValidationMessage For="@(() => questionnaireInfo.SubmissionDeadline)" />
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+
+            </EditForm>
+
+        </div>
+    </div>
+</div>
+
+@code {
+    private const string PageName = "New AuditQuestionnaire";
+    private AuditQuestionnaireDetailDTO? auditQuestionnaire = new AuditQuestionnaireDetailDTO();
+    private QuestionnaireInfo? questionnaireInfo = new QuestionnaireInfo();
+    private bool isDialogVisible = false;
+
+    private void OnOptionSelected(ChangeEventArgs e)
+    {
+        var enumValue = (Region)Enum.Parse(typeof(Region), e.Value!.ToString()!);
+        Console.WriteLine($"enumValue: {enumValue!.ToString()}");
+        this.questionnaireInfo!.Region = enumValue;
+    }
+
+    private async void HandleValidSubmit()
+    {
+
+        string name = "DNC_" + questionnaireInfo!.Name;
+
+        Console.WriteLine($"Questionnaire Created: {name}, {questionnaireInfo.Description}, Regions: {questionnaireInfo.Region}, Submission Deadline: {questionnaireInfo.SubmissionDeadline.ToShortDateString()}");
+
+        var request = await this.httpClient.GetAsync($"AuditQuestionnaires/{name}/ByName");
+        if(request.IsSuccessStatusCode)
+        {
+            // ShowDialog();
+            Console.WriteLine($"request.IsSuccessStatusCode :: {request.IsSuccessStatusCode} | questionnarie already exists");
+        }
+        else
+        {          
+            auditQuestionnaire!.Name = name;
+            auditQuestionnaire.Description = this.questionnaireInfo.Description;
+            auditQuestionnaire.Region = this.questionnaireInfo.Region;
+            auditQuestionnaire.CreatedBy = 1;
+            auditQuestionnaire.CreatedDate = DateTime.Now;
+            auditQuestionnaire.SubmissionDeadline = this.questionnaireInfo.SubmissionDeadline;
+            auditQuestionnaire.ApprovedByProjetManagerId = 0;
+            auditQuestionnaire.IsStarted = false;
+            auditQuestionnaire.IsCompleted = false;
+            Console.WriteLine($"auditQuestionnaire :: Name-> {auditQuestionnaire.Name}, description-> {auditQuestionnaire.Description}, region-> {auditQuestionnaire.SubmissionDeadline},");
+
+            // saving to database
+            var response = await AuditQuestionnaireService.PostAuditQuestionnaire(auditQuestionnaire);
+            if(response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/success");
+                Console.WriteLine("post success");
+            }
+            else
+            {
+                Console.WriteLine("post failed");
+            }
+
+        }
+        
+    }
+       
+
+}

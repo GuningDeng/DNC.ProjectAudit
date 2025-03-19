@@ -1,6 +1,7 @@
 using DNC.ProjectAudit.Application.Extensions;
 using DNC.ProjectAudit.Domain.Entities.AuditManagement;
 using DNC.ProjectAudit.Infrastructure.Extensions;
+using DNC.ProjectAudit.WebAPI.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +40,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseErrorHandlingMiddleware();
 app.UseHttpsRedirection();
 app.UseCors("_myAllowSpecificOrigins");
 app.UseAuthorization();

@@ -1,0 +1,1281 @@
+﻿@page "/ManageAuditQuestionnaire/{QuestionnaireId:int}"
+@using DNC.ProjectAudit.Application.CQRS.Audits
+@using DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
+@using DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions
+@using DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
+@using DNC.ProjectAudit.AuditClient.Components
+@using DNC.ProjectAudit.AuditClient.Entities
+
+@using System.Net.Http;
+@using System.Net.Http.Json;
+@using System.Threading.Tasks;
+@using DNC.ProjectAudit.AuditClient.Services
+@using DNC.ProjectAudit.AuditClient.Utils
+@using DNC.ProjectAudit.Domain.Entities.AuditManagement.Questions
+@using DNC.ProjectAudit.Domain.Entities.Enums
+@inject HttpClient httpClient
+@inject NavigationManager Navigation
+
+@inject AuditQuestionnaireService AuditQuestionnaireService;
+
+<PageTitle>@PageName</PageTitle>
+
+<div class="container mt-4">
+    <div class="card mb-lg-5">
+        <div class="card-header">
+            @PageName
+        </div>
+        <div class="card-body">
+            @if (auditQuestionnaire == null || QuestionnaireInfo == null)
+            {
+                <p><em>Loading...</em></p>
+            }
+            else
+            {
+                <h5 class="card-title fw-bold">@auditQuestionnaire.Name</h5>
+                <div class="mb-3">Beschrijving: @auditQuestionnaire.Description</div>
+                <div class="mb-3">Gewest: @auditQuestionnaire.Region</div>
+                <div class="mb-3">Deadline voor inzending: @auditQuestionnaire.SubmissionDeadline</div>
+                <div class="mb-3">
+                    Is gestart:
+                    @if (@auditQuestionnaire.IsStarted)
+                    {
+                        <span>Ja</span>
+                    }
+                    else
+                    {
+                        <span>Nee</span>
+                    }
+                </div>
+                <div class="mb-3">
+                    Is voltooid:
+                    @if (@auditQuestionnaire.IsCompleted)
+                    {
+                        <span>Ja</span>
+                    }
+                    else
+                    {
+                        <span>Nee</span>
+                    }
+                </div>
+                <div class="mb-3">
+                    <button class="btn btn-outline-primary" @onclick="ShowQuestionnaireDialog">Wijzigen</button>
+                </div>
+
+                <hr class="my-1" />
+
+                <div class=" mt-5 mb-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold">Multiplechoicevraag</h6>
+                    <button class="btn btn-outline-primary" @onclick="ShowAddNewMultipleChoiceDialog">Nieuwe multiple choice vraag</button>
+                </div>
+
+                if (this.auditQuestionnaire.MultipleChoiceQuestions!.Count == 0)
+                {
+                    <p><em>No Questions</em></p>
+                }
+                else
+                {
+                    <div class="card">
+                        <div class="card-body">
+                            @foreach (var choice in this.auditQuestionnaire.MultipleChoiceQuestions)
+                            {
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">ID</th>
+                                            <th scope="col" class="col-3">Vraag tekst</th>
+                                            <th scope="col">Tonen voor gebruikers</th>
+                                            <th scope="col">Prioriteit</th>
+                                            <th scope="col">Wijzigen</th>
+                                            <th scope="col">Weergave</th>
+                                            <th scope="col">Verwijderen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>@(choice.Id)</td>
+                                            <td>@choice.QuestionText</td>
+                                            <td>
+                                                @if (choice.IsDisplay == true)
+                                                {
+                                                    <span>Ja</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>Nee</span>
+                                                }
+                                            </td>
+                                            <td>@choice.PriorityIndication</td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>ShowMultipleChoiceDialog(choice.Id)">
+                                                    <span>&#x25B6;</span> <!-- Right arrow -->
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>ShowViewMultipleChoiceDialog(choice.Id)">
+                                                    <span>&#x1f441;</span>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>DeleteMultipleChoiceQuestionByIdCommand(choice.Id)">
+                                                    <span>&#10539;</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+
+                    </div>
+                }
+
+                <div class=" mt-5 mb-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold">Open vraag</h6>
+                    <button class="btn btn-outline-primary" @onclick="ShowAddNewOpenQuestionDialog">Nieuwe open vraag</button>
+                </div>
+                if (this.auditQuestionnaire.OpenQuestions!.Count == 0)
+                {
+                    <p><em>No Questions</em></p>
+                }
+                else
+                {
+                    <div class="card">
+                        <div class="card-body">
+                            @foreach (var question in this.auditQuestionnaire.OpenQuestions)
+                            {
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">ID</th>
+                                            <th scope="col" class="col-3">Vraag tekst</th>
+                                            <th scope="col">Tonen voor gebruikers</th>
+                                            <th scope="col">Prioriteit</th>
+                                            <th scope="col">Wijzigen</th>
+                                            <th scope="col">Weergave</th>
+                                            <th scope="col">Verwijderen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>@(question.Id)</td>
+                                            <td>@question.QuestionText</td>
+                                            <td>
+                                                @if (question.IsDisplay == true)
+                                                {
+                                                    <span>Ja</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>Nee</span>
+                                                }
+                                            </td>
+                                            <td>@question.PriorityIndication</td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>ShowOpenQuestionDialog(question.Id)">
+                                                    <span>&#x25B6;</span> <!-- Right arrow -->
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>ShowViewOpenQuestionDialog(question.Id)">
+                                                    <span>&#x1f441;</span>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>DeleteOpenQuestionById(question.Id)">
+                                                    <span>&#10539;</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+
+                    </div>
+                }
+
+                <div class=" mt-5 mb-3 d-flex justify-content-between align-items-center">
+                    <h6 class="fw-bold">Selectielijst</h6>
+                    <button class="btn btn-outline-primary" @onclick="ShowAddNewSelectListDialog">Nieuwe selectielijst</button>
+                </div>
+                if (this.auditQuestionnaire.SelectListQuestions!.Count == 0)
+                {
+                    <p><em>No Questions</em></p>
+                }
+                else
+                {
+                    <div class="card">
+                        <div class="card-body">
+                            @foreach (var question in this.auditQuestionnaire.SelectListQuestions)
+                            {
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">ID</th>
+                                            <th scope="col" class="col-3">Vraag tekst</th>
+                                            <th scope="col">Tonen voor gebruikers</th>
+                                            <th scope="col">Prioriteit</th>
+                                            <th scope="col">Wijzigen</th>
+                                            <th scope="col">Weergave</th>
+                                            <th scope="col">Verwijderen</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>@(question.Id)</td>
+                                            <td>@question.QuestionText</td>
+                                            <td>
+                                                @if (question.IsDisplay == true)
+                                                {
+                                                    <span>Ja</span>
+                                                }
+                                                else
+                                                {
+                                                    <span>Nee</span>
+                                                }
+                                            </td>
+                                            <td>@question.PriorityIndication</td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>ShowSelectListDialog(question.Id)">
+                                                    <span>&#x25B6;</span> <!-- Right arrow -->
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>ShowViewSelectListDialog(question.Id)">
+                                                    <span>&#x1f441;</span>
+                                                </button>
+                                            </td>
+                                            <td>
+                                                <button class="btn btn-outline-primary" @onclick="()=>DeleteSelectListDialogById(question.Id)">
+                                                    <span>&#10539;</span>
+                                                </button>
+                                            </td>
+                                        </tr>
+
+                                    </tbody>
+                                </table>
+                            }
+                        </div>
+
+                    </div>
+                }
+
+
+            }
+        </div>
+    </div>
+</div>
+
+@if (isQuestionnaireDialogVisible)
+{
+    <Dialog @bind-Visible="isQuestionnaireDialogVisible" Title="Aanpassing" OnClose="()=>CloseDialog(0)" OnConfirm="()=>ConfirmModal(0)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>
+                    @this.auditQuestionnaire!.Name
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-2 fw-bold">Huidige beschrijving:</div>
+                <div class="mb-2">@this.auditQuestionnaire.Description</div>
+                <div class="mb-3">
+                    <label for="textarea1" class="form-label">Nieuwe tekst</label>
+                    <textarea class="form-control" id="textarea1" rows="6" @bind="@this.updatedAuditQuestionnaireDetailDTO!.Description" @bind:event="oninput"></textarea>
+                </div>
+                <div class="mb-2 fw-bold">
+                    Huidige Gewest:
+                    @this.auditQuestionnaire.Region
+                </div>
+                <div class="mb-3">
+                    <div>
+                        @foreach (var region in Enum.GetValues(typeof(Region)))
+                        {
+                            <div class="form-check form-check-inline">
+                                <input type="radio" class="form-check-input" id="@region" name="region" value="@region" @onchange="(e) => OnOptionSelected(e)" disabled />
+                                <label class="form-check-label" for="@region">@region</label>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="mb-2 fw-bold">
+                    Huidige deadline voor inzending: @this.auditQuestionnaire.SubmissionDeadline
+                </div>
+                <div class="form-group mb-3">
+                    <label for="submissionDeadline">Nieuwe deadline voor inzending</label>
+                    <input type="date" id="submissionDeadline" class="form-control" @bind-value="@updatedAuditQuestionnaireDetailDTO!.SubmissionDeadline" />
+                </div>
+                <div class="mb-2 fw-bold">
+                    Huidige keuze van "Is gestart":
+                    @if (this.auditQuestionnaire.IsStarted == true)
+                    {
+                        <span>Ja</span>
+                    }
+                    else
+                    {
+                        <span>Nee</span>
+                    }
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nieuwe keuze: </label>
+                    <input type="checkbox" class="form-check-input" id="isDisplay" @bind="this.updatedAuditQuestionnaireDetailDTO.IsStarted" @bind:event="onchange" />
+                    <label class="form-check-label" for="isDisplay">Is gestart</label>
+                </div>
+
+            </div>
+
+        </div>
+
+    </Dialog>
+}
+
+@if (isMultipleChoiceDialogVisible)
+{
+    <Dialog @bind-Visible="isMultipleChoiceDialogVisible" Title="Aanpassing" OnClose="()=>CloseDialog(1)" OnConfirm="()=>ConfirmModal(1)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>Vraagtype: @this.questionType</p>
+                <p>
+                    @this.multipleChoiceQuestionDTO!.QuestionText
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-2 fw-bold">Huidige optie tekst:</div>
+                <div class="mb-2">@this.multipleChoiceQuestionDTO.OptionText</div>
+                <div class="mb-3">
+                    <label for="textareaMultiChoice" class="form-label">Nieuwe optie tekst (formaat: optie1;optie2;...;optie6)</label>
+                    <textarea class="form-control" id="textareaMultiChoice" rows="6" @bind="this.updatedMultipleChoiceQuestionDTO!.OptionText" @bind:event="oninput"></textarea>
+                </div>
+                <div class="mb-2 fw-bold">Huidige keuze van "Tonen voor gebruikers":
+                    @if (this.multipleChoiceQuestionDTO.IsDisplay == true)
+                    {
+                        <span>Ja</span>
+                    }
+                    else
+                    {
+                        <span>Nee</span>
+                    }
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nieuwe keuze: </label>
+                    <input type="checkbox" class="form-check-input" id="isDisplayUpdatedMultipleChoice" @bind="this.updatedMultipleChoiceQuestionDTO!.IsDisplay" @bind:event="onchange" />
+                    <label class="form-check-label" for="isDisplayUpdatedMultipleChoice">Tonen voor gebruikers</label>
+                </div>
+                <div class="mb-2 fw-bold">
+                    Huidige prioriteit: @this.multipleChoiceQuestionDTO.PriorityIndication
+                </div>
+                <div class="form-group mb-3">
+                    <label for="updatedMultipleChoicePriorityIndication">Nieuwe prioriteit (tussen 0 en 5)</label>
+                    <input type="number" min="0" max="5" class="form-control" id="updatedMultipleChoicePriorityIndication" @bind="this.updatedMultipleChoiceQuestionDTO!.PriorityIndication" @bind:event="onchange" />
+                </div>
+
+            </div>
+
+        </div>
+
+    </Dialog>
+
+}
+
+@if (isOpenQuestionDialogVisible)
+{
+    <Dialog @bind-Visible="isOpenQuestionDialogVisible" Title="Aanpassing" OnClose="()=>CloseDialog(2)" OnConfirm="()=>ConfirmModal(2)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>Vraagtype: Open vraag</p>
+                <p>
+                    @this.openQuestionDTO!.QuestionText
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-2 fw-bold">
+                    Huidige keuze van "Tonen voor gebruikers":
+                    @if (this.openQuestionDTO.IsDisplay == true)
+                    {
+                        <span>Ja</span>
+                    }
+                    else
+                    {
+                        <span>Nee</span>
+                    }
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nieuwe keuze: </label>
+                    <input type="checkbox" class="form-check-input" id="isDisplayUpdatedOpenQuestion" @bind="this.updatedOpenQuestionDTO!.IsDisplay" @bind:event="onchange"/>
+                    <label class="form-check-label" for="isDisplayUpdatedOpenQuestion">Tonen voor gebruikers</label>
+                </div>
+                <div class="mb-2 fw-bold">
+                    Huidige prioriteit: @this.openQuestionDTO.PriorityIndication
+                </div>
+                <div class="form-group mb-3">
+                    <label for="updatedOpenQuestionPriorityIndication">Nieuwe prioriteit (tussen 0 en 5)</label>
+                    <input type="number" min="0" max="5" class="form-control" id="updatedOpenQuestionPriorityIndication" @bind="this.updatedOpenQuestionDTO!.PriorityIndication" @bind:event="onchange" />
+                </div>
+
+            </div>
+
+        </div>
+
+    </Dialog>
+}
+
+@if (isSelectListDialogVisible)
+{
+    <Dialog @bind-Visible="isSelectListDialogVisible" Title="Aanpassing" OnClose="()=>CloseDialog(3)" OnConfirm="()=>ConfirmModal(3)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>Vraagtype: Vraaglijst</p>
+                <p>
+                    @this.selectListQuestionDTO!.QuestionText
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-2 fw-bold">Huidige optie tekst:</div>
+                <div class="mb-2">@this.selectListQuestionDTO.OptionText</div>
+                <div class="mb-3">
+                    <label for="textareaUpdatedSelectList" class="form-label">Nieuwe optie tekst (formaat: optie1;optie2;...;optie6)</label>
+                    <textarea class="form-control" id="textareaUpdatedSelectList" rows="6" @bind="this.updatedSelectListQuestionDTO!.OptionText" @bind:event="oninput"></textarea>
+                </div>
+                <div class="mb-2 fw-bold">
+                    Huidige keuze van "Tonen voor gebruikers":
+                    @if (this.selectListQuestionDTO.IsDisplay == true)
+                    {
+                        <span>Ja</span>
+                    }
+                    else
+                    {
+                        <span>Nee</span>
+                    }
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Nieuwe keuze: </label>
+                    <input type="checkbox" class="form-check-input" id="isDisplayUpdatedSelectList" @bind="this.updatedSelectListQuestionDTO.IsDisplay" @bind:event="onchange" />
+                    <label class="form-check-label" for="isDisplayUpdatedSelectList">Tonen voor gebruikers</label>
+                </div>
+                <div class="mb-2 fw-bold">
+                    Huidige prioriteit: @this.selectListQuestionDTO.PriorityIndication
+                </div>
+                <div class="form-group mb-3">
+                    <label for="updatedSelectListPriorityIndication">Nieuwe prioriteit (tussen 0 en 5)</label>
+                    <input type="number" min="0" max="5" class="form-control" id="updatedSelectListPriorityIndication" @bind="this.updatedSelectListQuestionDTO!.PriorityIndication" @bind:event="onchange" />
+                </div>
+            </div>
+        </div>
+    </Dialog>
+}
+@if(isNewMultipleChoiceDialogVisible)
+{
+    <Dialog @bind-Visible="isNewMultipleChoiceDialogVisible" Title="Nieuwe multiplechoicevraag" OnClose="()=>CloseDialog(4)" OnConfirm="()=>ConfirmAddNewQuestion(1)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>
+                    Voeg nieuwe vraag aan
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="multipleChoice" class="form-label fw-bold">Vraag tekst</label>
+                    <label class="text-warning"> @this.questionAlert</label>
+                    <input type="text" class="form-control" id="multipleChoice" @bind="@this.newMultipleChoiceQuestionDTO!.QuestionText" @bind:event="oninput" />
+                </div>
+                <div class="mb-3">
+                    <label for="choiceOption" class="form-label fw-bold">Optie tekst (formaat: optie1;optie2;...optie6)</label>
+                    <label class="text-warning"> @this.optieAlert</label>
+                    <textarea class="form-control" id="choiceOption" rows="3" @bind="@this.newMultipleChoiceQuestionDTO.OptionText" @bind:event="oninput" />
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold" for="isDisplayMultichoice">Tonen voor gebruikers: </label>
+                    <input type="checkbox" class="form-check-input" id="isDisplayMultichoice" @bind="@this.newMultipleChoiceQuestionDTO.IsDisplay" @bind:event="onchange" />
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold" for="multipleChoicePriorityIndication">prioriteit (tussen 0 en 5)</label>
+                    <input type="number" min="0" max="5" class="form-control" id="multipleChoicePriorityIndication" @bind="this.newMultipleChoiceQuestionDTO.PriorityIndication" @bind:event="onchange" />
+                </div>
+            </div>
+        </div>
+    </Dialog>
+}
+
+@if(isNewOpenQuestionDialogVisible)
+{
+    <Dialog @bind-Visible="isNewOpenQuestionDialogVisible" Title="Nieuwe open vraag" OnClose="()=>CloseDialog(5)" OnConfirm="()=>ConfirmAddNewQuestion(2)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>
+                    Voeg nieuwe vraag aan
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="openQuestion" class="form-label fw-bold">Vraag tekst</label>
+                    <label class="text-warning"> @this.questionAlert</label>
+                    <input type="text" class="form-control" id="openQuestion" @bind="@this.newOpenQuestionDTO!.QuestionText" @bind:event="oninput" />
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold" for="isDisplayOpenQuestion">Tonen voor gebruikers: </label>
+                    <input type="checkbox" class="form-check-input" id="isDisplayOpenQuestion" @bind="@this.newOpenQuestionDTO!.IsDisplay" @bind:event="onchange" />
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold" for="openQuestionPriorityIndication">prioriteit (tussen 0 en 5)</label>
+                    <input type="number" min="0" max="5" class="form-control" id="openQuestionPriorityIndication" @bind="@this.newOpenQuestionDTO!.PriorityIndication" @bind:event="onchange" />
+                </div>
+            </div>
+        </div>
+    </Dialog>
+}
+
+@if (isNewSelectListDialogVisible)
+{
+    <Dialog @bind-Visible="isNewSelectListDialogVisible" Title="Nieuwe selectielijst" OnClose="()=>CloseDialog(6)" OnConfirm="()=>ConfirmAddNewQuestion(3)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>
+                    Voeg nieuwe vraag aan
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="selectList" class="form-label fw-bold">Vraag tekst</label>
+                    <label class="text-warning"> @this.questionAlert</label>
+                    <input type="text" class="form-control" id="selectList" @bind="@this.newSelectListQuestionDTO!.QuestionText" @bind:event="oninput" />
+                </div>
+                <div class="mb-3">
+                    <label for="selectOption" class="form-label fw-bold">Optie tekst (formaat: optie1;optie2;...optie6)</label>
+                    <label class="text-warning"> @this.optieAlert</label>
+                    <textarea class="form-control" id="selectOption" rows="3" @bind="@this.newSelectListQuestionDTO!.OptionText" @bind:event="oninput" />
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold" for="isDisplaySelectList">Tonen voor gebruikers: </label>
+                    <input type="checkbox" class="form-check-input" id="isDisplaySelectList" @bind="@this.newSelectListQuestionDTO.IsDisplay" @bind:event="onchange" />
+                </div>
+                <div class="form-group mb-3">
+                    <label class="form-label fw-bold" for="selectListPriorityIndication">prioriteit (tussen 0 en 5)</label>
+                    <input type="number" min="0" max="5" class="form-control" id="selectListPriorityIndication" @bind="@this.newSelectListQuestionDTO.PriorityIndication" @bind:event="onchange" />
+                </div>
+
+            </div>
+
+        </div>
+
+    </Dialog>
+}
+
+@if (isViewMultipleChoiceDialogVisible)
+{
+    <Dialog @bind-Visible="isViewMultipleChoiceDialogVisible" Title="Weergave multiple choice vraag" OnClose="()=>CloseDialog(7)" OnConfirm="()=>CloseDialog(7)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>
+                    @this.multipleChoiceQuestionDTO!.QuestionText
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    @{
+                        var options = this.multipleChoiceQuestionDTO.OptionText!.Split(";");
+                        foreach (var option in options.Select((q, i) => new { q, i }))
+                        {
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" />
+                                <label class="form-check-label">@option.q</label>
+                            </div>
+                        }
+                    }
+                </div>
+                <div class="mb-2 fw-bold">
+                    Tonen voor gebruikers:
+                    @if (this.multipleChoiceQuestionDTO.IsDisplay == true)
+                    {
+                        <span> Ja</span>
+                    }
+                    else
+                    {
+                        <span> Nee</span>
+                    }
+                </div>
+                <div class="mb-2 fw-bold">
+                    Prioriteit: @this.multipleChoiceQuestionDTO.PriorityIndication
+                </div>
+
+            </div>
+
+        </div>
+
+    </Dialog>
+
+}
+
+
+
+@if(isViewOpenQuestionDialogVisible)
+{
+    <Dialog @bind-Visible="isViewOpenQuestionDialogVisible" Title="Weergave open vraag" OnClose="()=>CloseDialog(8)" OnConfirm="()=>CloseDialog(8)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>
+                    @this.openQuestionDTO!.QuestionText
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label fw-bold">Antwoord</label>
+                    <textarea class="form-control" rows="3" disabled />
+                </div>
+                <div class="mb-2 fw-bold">
+                    Tonen voor gebruikers:
+                    @if (this.openQuestionDTO.IsDisplay == true)
+                    {
+                        <span> Ja</span>
+                    }
+                    else
+                    {
+                        <span> Nee</span>
+                    }
+                </div>
+                <div class="mb-2 fw-bold">
+                    Prioriteit: @this.openQuestionDTO.PriorityIndication
+                </div>
+            </div>
+        </div>
+    </Dialog>
+}
+
+@if(isViewSelectListDialogVisible)
+{
+    <Dialog @bind-Visible="isViewSelectListDialogVisible" Title="Weergave selectielijst" OnClose="()=>CloseDialog(9)" OnConfirm="()=>CloseDialog(9)">
+        <div class="card">
+            <div class="card-header fw-bold">
+                <p>
+                    @this.selectListQuestionDTO!.QuestionText
+                </p>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    @{
+                        var options = this.selectListQuestionDTO.OptionText!.Split(";");
+                        <select class="form-select">
+                            @foreach(var option in options)
+                            {
+                                <option value="@option">@option</option>
+                            }
+                        </select>
+
+                    }
+                </div>
+                <div class="mb-2 fw-bold">
+                    Tonen voor gebruikers:
+                    @if (this.selectListQuestionDTO.IsDisplay == true)
+                    {
+                        <span> Ja</span>
+                    }
+                    else
+                    {
+                        <span> Nee</span>
+                    }
+                </div>
+                <div class="mb-2 fw-bold">
+                    Prioriteit: @this.selectListQuestionDTO.PriorityIndication
+                </div>
+
+            </div>
+
+        </div>
+
+    </Dialog>
+}
+
+
+@code {
+    [Parameter]
+    public int QuestionnaireId { get; set; }
+    private const string PageName = "Manage AuditQuestionnaire";
+
+    private AuditQuestionnaireDetailDTO? auditQuestionnaire;
+    private AuditQuestionnaireDetailDTO? updatedAuditQuestionnaireDetailDTO = new AuditQuestionnaireDetailDTO();
+    private QuestionnaireInfo? QuestionnaireInfo = new QuestionnaireInfo();
+    private List<QuestionWithOptionInfoList>? questionWithOptionInfoLists = new List<QuestionWithOptionInfoList>();
+
+    private MultipleChoiceQuestionDTO? multipleChoiceQuestionDTO = new MultipleChoiceQuestionDTO();
+    private MultipleChoiceQuestionDTO? updatedMultipleChoiceQuestionDTO = new MultipleChoiceQuestionDTO();
+    private MultipleChoiceQuestionDTO? newMultipleChoiceQuestionDTO = new MultipleChoiceQuestionDTO();
+
+    private OpenQuestionDTO? openQuestionDTO = new OpenQuestionDTO();
+    private OpenQuestionDTO? updatedOpenQuestionDTO = new OpenQuestionDTO();
+    private OpenQuestionDTO? newOpenQuestionDTO = new OpenQuestionDTO();
+
+    private SelectListQuestionDTO? selectListQuestionDTO = new SelectListQuestionDTO();
+    private SelectListQuestionDTO? updatedSelectListQuestionDTO = new SelectListQuestionDTO();
+    private SelectListQuestionDTO? newSelectListQuestionDTO = new SelectListQuestionDTO();
+
+    private int selectedId = 0;
+    private bool isQuestionnaireDialogVisible = false;
+    private bool isMultipleChoiceDialogVisible = false;
+    private bool isOpenQuestionDialogVisible = false;
+    private bool isSelectListDialogVisible = false;
+
+    private bool isNewMultipleChoiceDialogVisible = false;
+    private bool isNewOpenQuestionDialogVisible = false;
+    private bool isNewSelectListDialogVisible = false;
+
+    private bool isViewMultipleChoiceDialogVisible = false;
+    private bool isViewOpenQuestionDialogVisible = false;
+    private bool isViewSelectListDialogVisible = false;
+
+    private string questionType = "";
+
+    private StringValidator stringValidator = new StringValidator();
+    private string? questionAlert { get; set; } = "";
+    private string? optieAlert { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var request = await this.httpClient.GetAsync($"AuditQuestionnaires/{this.QuestionnaireId}");
+        if (request.IsSuccessStatusCode)
+        {
+            this.auditQuestionnaire = await AuditQuestionnaireService.GetAuditQuestionnaire(this.QuestionnaireId);
+            var choices = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+            var opens = await AuditQuestionnaireService.GetOpenQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+            var selectLists = await AuditQuestionnaireService.GetSelectListQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+            this.auditQuestionnaire.MultipleChoiceQuestions = choices;
+            this.auditQuestionnaire.OpenQuestions = opens;
+            this.auditQuestionnaire.SelectListQuestions = selectLists;
+
+            this.updatedAuditQuestionnaireDetailDTO!.Description = this.auditQuestionnaire.Description;
+            this.updatedAuditQuestionnaireDetailDTO.Region = this.auditQuestionnaire.Region;
+            this.updatedAuditQuestionnaireDetailDTO.SubmissionDeadline = this.auditQuestionnaire.SubmissionDeadline;
+            this.updatedAuditQuestionnaireDetailDTO.IsStarted = this.auditQuestionnaire.IsStarted;
+
+            this.updatedMultipleChoiceQuestionDTO!.IsDisplay = false;
+            this.updatedMultipleChoiceQuestionDTO.PriorityIndication = 0;
+
+            this.updatedOpenQuestionDTO!.IsDisplay = false;
+            this.updatedOpenQuestionDTO.PriorityIndication = 0;
+
+            this.updatedSelectListQuestionDTO!.IsDisplay = false;
+            this.updatedSelectListQuestionDTO!.PriorityIndication = 0;
+
+            this.newMultipleChoiceQuestionDTO!.IsDisplay = false;
+            this.newMultipleChoiceQuestionDTO.PriorityIndication = 0;
+
+            String name = this.auditQuestionnaire.Name!;
+            QuestionnaireInfo!.Name = this.auditQuestionnaire.Name;
+
+            List<QuestionWithOptionInfoList> multipleChoiceInfos = new List<QuestionWithOptionInfoList>();
+
+            List<QuestionWithOptionInfoList> selectListInfos = new List<QuestionWithOptionInfoList>();
+
+            List<OpenQuestionInfo> openQuestionInfos = new List<OpenQuestionInfo>();
+
+            for(int i = 0; i < choices.Count; i++)
+            {
+                QuestionWithOptionInfoList question = new QuestionWithOptionInfoList();
+                List<OptionInfo> multiOptionInfos = new List<OptionInfo>();
+
+                var options = choices[i].OptionText!.Split(";");
+                foreach (var option in options)
+                {
+                    OptionInfo optionInfo = new OptionInfo();
+                    optionInfo.Option = option;
+                    optionInfo.IsSelected = false;
+                    multiOptionInfos.Add(optionInfo);
+                }
+                question.QuestionText = choices[i].QuestionText;
+                question.Options = multiOptionInfos;
+                question.Index = i;
+                question.IsDisplay = choices[i].IsDisplay;
+                question.AnswerText = choices[i].AnswerText;
+                question.PriorityIndication = choices[i].PriorityIndication;
+                multipleChoiceInfos.Add(question);
+
+            }
+
+            foreach (var multi in multipleChoiceInfos)
+            {
+                Console.WriteLine($"multiOptionInfos :: {multi.Index} | {multi.Options!.Count}");
+                foreach (var opt in multi.Options)
+                {
+                    Console.WriteLine($" :: {opt.Option}");
+                }
+            }
+
+            QuestionnaireInfo.MultipleChoiceInfos = multipleChoiceInfos;
+
+        }
+        else
+        {
+            Navigation.NavigateTo("/AuditQuestionnaires");
+            Console.WriteLine($"request.StatusCode :: {request.StatusCode}");
+        }
+    }
+
+    private void ShowQuestionnaireDialog()
+    {
+        Console.WriteLine($"Questionnaire");
+        isQuestionnaireDialogVisible = true;
+    }
+
+    private async Task ShowMultipleChoiceDialog(int id)
+    {        
+        this.selectedId = id;
+        await GetMultipleChoiceDTOById(id);
+        Console.WriteLine($"GetMultipleChoiceDTOById :: id | {this.multipleChoiceQuestionDTO!.Id}, question | {this.multipleChoiceQuestionDTO.QuestionText}");
+        this.updatedMultipleChoiceQuestionDTO!.OptionText = this.multipleChoiceQuestionDTO.OptionText;
+        this.updatedMultipleChoiceQuestionDTO.IsDisplay = this.multipleChoiceQuestionDTO.IsDisplay;
+        this.updatedMultipleChoiceQuestionDTO.PriorityIndication = this.multipleChoiceQuestionDTO.PriorityIndication;
+        isMultipleChoiceDialogVisible = true;
+    }
+
+    private async Task ShowViewMultipleChoiceDialog(int id)
+    {
+        this.selectedId = id;
+        await GetMultipleChoiceDTOById(id);
+        Console.WriteLine($"GetMultipleChoiceDTOById :: id | {this.multipleChoiceQuestionDTO!.Id}, view, question | {this.multipleChoiceQuestionDTO.QuestionText}");
+        isViewMultipleChoiceDialogVisible = true;
+
+    }
+
+    private async Task DeleteMultipleChoiceQuestionByIdCommand(int id)
+    {
+        var response = await AuditQuestionnaireService.DeleteMultipleChoiceQuestion(id);
+        if(response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+            Console.WriteLine("success delete");
+        }
+        else
+        {
+            Console.WriteLine("delete failed");
+        }
+    }
+
+    private async Task ShowOpenQuestionDialog(int id)
+    {
+        this.selectedId = id;
+        await GetOpenQuestionDTOById(id);
+        Console.WriteLine($"GetOpenQuestionDTOById :: id | {this.openQuestionDTO!.Id}, question | {this.openQuestionDTO.QuestionText}");
+        this.updatedOpenQuestionDTO!.IsDisplay = this.openQuestionDTO.IsDisplay;
+        this.updatedOpenQuestionDTO.PriorityIndication = this.openQuestionDTO.PriorityIndication;
+        isOpenQuestionDialogVisible = true;
+    }
+
+    private async Task ShowViewOpenQuestionDialog(int id)
+    {
+        this.selectedId = id;
+        await GetOpenQuestionDTOById(id);
+        Console.WriteLine($"GetOpenQuestionDTOById :: id | {this.openQuestionDTO!.Id}, view,, question | {this.openQuestionDTO.QuestionText}");
+        isViewOpenQuestionDialogVisible = true;
+
+    }
+
+    private async Task DeleteOpenQuestionById(int id)
+    {
+        var response = await AuditQuestionnaireService.DeleteOpenQuestion(id);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+            Console.WriteLine("success delete");
+        }
+        else
+        {
+            Console.WriteLine("delete failed");
+        }
+    }
+
+    private async Task ShowSelectListDialog(int id)
+    {
+        this.selectedId = id;
+        await GetSelectListQuestionDTOById(id);
+        Console.WriteLine($"GetSelectListQuestionDTOById :: id | {this.selectListQuestionDTO!.Id}, question | {this.selectListQuestionDTO.QuestionText}");
+        this.updatedSelectListQuestionDTO!.OptionText = this.selectListQuestionDTO.OptionText;
+        this.updatedSelectListQuestionDTO.IsDisplay = this.selectListQuestionDTO.IsDisplay;
+        this.updatedSelectListQuestionDTO.PriorityIndication = this.selectListQuestionDTO.PriorityIndication;
+
+        isSelectListDialogVisible = true;
+    }
+
+    private async Task ShowViewSelectListDialog(int id)
+    {
+        this.selectedId = id;
+        await GetSelectListQuestionDTOById(id);
+        Console.WriteLine($"GetSelectListQuestionDTOById :: id | {this.selectListQuestionDTO!.Id}, view, question | {this.selectListQuestionDTO.QuestionText}");
+        isViewSelectListDialogVisible = true;
+    }
+
+    private async Task DeleteSelectListDialogById(int id)
+    {
+        var response = await AuditQuestionnaireService.DeleteSelectListQuestion(id);
+        if (response.IsSuccessStatusCode)
+        {
+            Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+            Console.WriteLine("success delete");
+        }
+        else
+        {
+            Console.WriteLine("delete failed");
+        }
+    }
+
+    /// <summary>
+    /// if dialog is closed, updated questionnaire and updated questions reset to default values
+    /// </summary>
+    /// <param name="numb"></param>
+    private void CloseDialog(int numb)
+    {
+        switch(numb)
+        {
+            case 0:
+                isQuestionnaireDialogVisible = false;
+                this.updatedAuditQuestionnaireDetailDTO!.Description = this.auditQuestionnaire!.Description;
+                this.updatedAuditQuestionnaireDetailDTO.Region = this.auditQuestionnaire.Region;
+                this.updatedAuditQuestionnaireDetailDTO.SubmissionDeadline = DateTime.Today;
+                this.updatedAuditQuestionnaireDetailDTO.IsStarted = false;
+                Console.WriteLine("isQuestionnaireDialogVisible closed");
+                break;
+            case 1:
+                isMultipleChoiceDialogVisible = false;
+                this.updatedMultipleChoiceQuestionDTO!.OptionText = string.Empty;
+                this.updatedMultipleChoiceQuestionDTO.IsDisplay = false;
+                this.updatedMultipleChoiceQuestionDTO.PriorityIndication = 0;
+                Console.WriteLine("isMultipleDialogVisible closed");
+                break;
+            case 2:
+                isOpenQuestionDialogVisible = false;
+                this.updatedOpenQuestionDTO!.IsDisplay = false;
+                this.updatedOpenQuestionDTO.PriorityIndication = 0;
+                Console.WriteLine("isOpenQuetionDialogVisible closed");
+                break;
+            case 3:
+                isSelectListDialogVisible = false;
+                this.updatedSelectListQuestionDTO!.OptionText = string.Empty;
+                this.updatedSelectListQuestionDTO.IsDisplay = false;
+                this.updatedSelectListQuestionDTO.PriorityIndication = 0;
+                Console.WriteLine("isSelectListDialogVisible closed");
+                break;
+            case 4:
+                isNewMultipleChoiceDialogVisible = false;
+                this.newMultipleChoiceQuestionDTO!.QuestionText = string.Empty;
+                this.newMultipleChoiceQuestionDTO.OptionText = string.Empty;
+                this.newMultipleChoiceQuestionDTO.IsDisplay = false;
+                this.newMultipleChoiceQuestionDTO.PriorityIndication = 0;
+                this.questionAlert = "";
+                this.optieAlert = "";
+                Console.WriteLine("isNewMultipleChoiceDialogVisible closed");
+                break;
+            case 5:
+                this.questionAlert = "";
+                isNewOpenQuestionDialogVisible = false;
+                this.newOpenQuestionDTO!.QuestionText = string.Empty;
+                this.newOpenQuestionDTO.IsDisplay = false;
+                this.newOpenQuestionDTO.PriorityIndication = 0;
+                Console.WriteLine("isNewOpenQuestionDialogVisible closed");
+                break;
+            case 6:
+                this.questionAlert = "";
+                this.optieAlert = "";
+                isNewSelectListDialogVisible = false;
+                this.newSelectListQuestionDTO!.QuestionText = string.Empty;
+                this.newSelectListQuestionDTO.OptionText = string.Empty;
+                this.newSelectListQuestionDTO.IsDisplay = false;
+                this.newSelectListQuestionDTO.PriorityIndication = 0;
+                Console.WriteLine("isNewSeleteListQuestionDialogVisible closed");
+                break;
+            case 7:
+                isViewMultipleChoiceDialogVisible = false;
+                break;
+            case 8:
+                isViewOpenQuestionDialogVisible = false;
+                break;
+            case 9:
+                isViewSelectListDialogVisible = false;
+                break;
+
+        }
+
+    }
+
+    private void OnOptionSelected(ChangeEventArgs e)
+    {
+        var enumValue = (Region)Enum.Parse(typeof(Region), e.Value!.ToString()!);
+        Console.WriteLine($"enumValue: {enumValue!.ToString()}");
+        this.updatedAuditQuestionnaireDetailDTO!.Region = enumValue;
+        Console.WriteLine($"auditQuestionnaire.Region: {this.updatedAuditQuestionnaireDetailDTO!.Region}");
+    }
+
+    /// <summary>
+    /// update questionnaire and questions
+    /// </summary>
+    /// <param name="numb"></param>
+    /// <returns></returns>
+    private async Task ConfirmModal(int numb)
+    {
+        switch(numb)
+        {
+            case 0:
+                this.updatedAuditQuestionnaireDetailDTO!.Name = this.auditQuestionnaire!.Name;
+                this.auditQuestionnaire.Description = this.updatedAuditQuestionnaireDetailDTO.Description;
+                this.auditQuestionnaire.IsStarted = this.updatedAuditQuestionnaireDetailDTO.IsStarted;
+                this.auditQuestionnaire.SubmissionDeadline = this.updatedAuditQuestionnaireDetailDTO.SubmissionDeadline;
+                Console.WriteLine($"id :: {this.QuestionnaireId}, Questionnaire :: name | {this.updatedAuditQuestionnaireDetailDTO!.Name}, Description | {this.updatedAuditQuestionnaireDetailDTO.Description}, Region | {this.updatedAuditQuestionnaireDetailDTO.Region} , IsGestart | {this.updatedAuditQuestionnaireDetailDTO.IsStarted} , deadline | {this.updatedAuditQuestionnaireDetailDTO.SubmissionDeadline} ");
+                var response = await AuditQuestionnaireService.UpdatedQuestionnaire(this.auditQuestionnaire.Id, this.auditQuestionnaire);
+                if(response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("success updated");
+                }
+                else
+                {
+                    Console.WriteLine("faild update");
+                }
+                isQuestionnaireDialogVisible = false;
+                break;
+            case 1:
+                Console.WriteLine($"selectedId :: {this.selectedId}, | multiple, IsDisplay | {this.updatedMultipleChoiceQuestionDTO!.IsDisplay}, PriorityIndication | {this.updatedMultipleChoiceQuestionDTO.PriorityIndication}");
+                this.multipleChoiceQuestionDTO!.OptionText = this.updatedMultipleChoiceQuestionDTO.OptionText;
+                this.multipleChoiceQuestionDTO.IsDisplay = this.updatedMultipleChoiceQuestionDTO.IsDisplay;
+                this.multipleChoiceQuestionDTO.PriorityIndication = this.updatedMultipleChoiceQuestionDTO.PriorityIndication;
+                Console.WriteLine($"this.multipleChoiceQuestionDTO :: IsDisplay | {this.multipleChoiceQuestionDTO.IsDisplay}");
+                var choiceResponse = await AuditQuestionnaireService.UpdateMultipleChoiceQuestion(selectedId, this.multipleChoiceQuestionDTO);
+                if (choiceResponse.IsSuccessStatusCode)
+                {
+                    Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+                    Console.WriteLine("success updated");
+                }
+                else
+                {
+                    Console.WriteLine("faild update");
+                }
+                isMultipleChoiceDialogVisible = false;
+                break;
+            case 2:
+                Console.WriteLine($"selectedId :: {numb} | openquetion");
+                this.openQuestionDTO!.IsDisplay = this.updatedOpenQuestionDTO!.IsDisplay;
+                this.openQuestionDTO.PriorityIndication = this.updatedOpenQuestionDTO.PriorityIndication;
+                var openResponse = await AuditQuestionnaireService.UpdateOpenQuestion(selectedId, this.openQuestionDTO);
+                if (openResponse.IsSuccessStatusCode)
+                {
+                    Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+                    Console.WriteLine("success updated");
+                }
+                else
+                {
+                    Console.WriteLine("faild update");
+                }
+                isOpenQuestionDialogVisible = false;
+                break;
+            case 3:
+                Console.WriteLine($"selectedId :: {numb} | select list");
+                this.selectListQuestionDTO!.OptionText = this.updatedSelectListQuestionDTO!.OptionText;
+                this.selectListQuestionDTO.IsDisplay = this.updatedSelectListQuestionDTO.IsDisplay;
+                this.selectListQuestionDTO.PriorityIndication = this.updatedSelectListQuestionDTO.PriorityIndication;
+                var selectListResponse = await AuditQuestionnaireService.UpdateSelectListQuestion(selectedId, this.selectListQuestionDTO);
+                if (selectListResponse.IsSuccessStatusCode)
+                {
+                    Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+                    Console.WriteLine("success updated");
+                }
+                else
+                {
+                    Console.WriteLine("faild update");
+                }
+                isSelectListDialogVisible = false;
+                break;
+        }
+
+    }
+
+    private async Task GetMultipleChoiceDTOById(int id)
+    {
+        var response = await this.httpClient.GetAsync($"MultipleChoiceQuestions/{id}");
+        if(response.IsSuccessStatusCode)
+        {
+            this.multipleChoiceQuestionDTO = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTO(id);
+        }
+        else
+        {
+            Console.WriteLine($"get failed :: {response.StatusCode}");
+        }
+    }
+
+    private async Task GetOpenQuestionDTOById(int id)
+    {
+        var response = await this.httpClient.GetAsync($"OpenQuestions/{id}");
+        if(response.IsSuccessStatusCode)
+        {
+            this.openQuestionDTO = await AuditQuestionnaireService.GetOpenQuestion(id);
+        }
+        else
+        {
+            Console.WriteLine($"get failed :: {response.StatusCode}");
+        }
+    }
+
+    private async Task GetSelectListQuestionDTOById(int id)
+    {
+        var response = await this.httpClient.GetAsync($"SelectListQuestions/{id}");
+        if (response.IsSuccessStatusCode)
+        {
+            this.selectListQuestionDTO = await AuditQuestionnaireService.GetSelectListQuestionDTO(id);
+        }
+        else
+        {
+            Console.WriteLine($"get failed :: {response.StatusCode}");
+        }
+    }
+
+    private void ShowAddNewMultipleChoiceDialog()
+    {
+        isNewMultipleChoiceDialogVisible = true;
+        Console.WriteLine($"questionnaire id :: {this.auditQuestionnaire!.Id}, new multiple choice");
+    }
+
+    /// <summary>
+    /// add new questions
+    /// </summary>
+    /// <param name="numb"></param>
+    /// <returns></returns>
+    private async Task ConfirmAddNewQuestion(int numb)
+    {
+        switch(numb)
+        {
+            case 1:
+                Console.WriteLine($"add new multiple choice :: {numb}");
+                this.newMultipleChoiceQuestionDTO!.AnswerText = string.Empty;
+                this.newMultipleChoiceQuestionDTO.QuestionAuditQuestionnaireId = this.QuestionnaireId;
+                Console.WriteLine($"new multiple choice :: qeustion | {this.newMultipleChoiceQuestionDTO!.QuestionText}, options | {this.newMultipleChoiceQuestionDTO.OptionText}, isdisplay | {this.newMultipleChoiceQuestionDTO.IsDisplay}, priorityIndication | {this.newMultipleChoiceQuestionDTO.PriorityIndication}, quesionnaire id | {this.newMultipleChoiceQuestionDTO.QuestionAuditQuestionnaireId}");
+                var validChoiceQuestionText = StringValidator.IsInvalidStringByNullOrEmptyOrWhiteSpaceAndLength(this.newMultipleChoiceQuestionDTO.QuestionText!, 8, 512);
+                var validChoiceOptions = StringValidator.IsInvalidStringByNullOrEmptyOrWhiteSpaceAndLength(this.newMultipleChoiceQuestionDTO.OptionText!, 8, 2014);
+                var existChoiceQuestionText = await AuditQuestionnaireService.ExistMultipleChoiceQuestionByQuestionnnaireIdAndByQuestionText(this.auditQuestionnaire!.Id, this.newMultipleChoiceQuestionDTO.QuestionText!);
+                if(validChoiceQuestionText)
+                {
+                    Console.WriteLine("invalid");
+                    this.questionAlert = "Vraagtekst mag niet leeg zijn. De tekenlengte ligt tussen 8 en 512.";
+                }
+                else if (existChoiceQuestionText.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("Question exists");
+                    this.questionAlert = "Vraag is al bestaat.";
+                }
+                else if(validChoiceOptions)
+                {
+                    Console.WriteLine("invalid");
+                    this.optieAlert = "Optietekst mag niet leeg zijn. De tekenlengte ligt tussen 8 en 2014.";
+                }
+                else
+                {
+                    Console.WriteLine("valid");
+                    var responseChoice = await AuditQuestionnaireService.PostMultipleChoiceQuestion(newMultipleChoiceQuestionDTO);
+                    if(responseChoice.IsSuccessStatusCode)
+                    {
+                        Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+                        Console.WriteLine("success post");
+
+                        this.questionAlert = "";
+                        this.optieAlert = "";
+                        isNewMultipleChoiceDialogVisible = false;
+                    }
+                    else
+                    {
+                        Console.WriteLine("failed post");
+                    }
+
+                }
+
+                break;
+            case 2:
+                Console.WriteLine($"add new open question :: {numb}");
+                this.newOpenQuestionDTO!.AnswerText = string.Empty;
+                this.newOpenQuestionDTO.QuestionAuditQuestionnaireId = this.QuestionnaireId;
+                Console.WriteLine($"this.newOpenQuestionDTO :: {this.newOpenQuestionDTO.QuestionText}, questionnaire id: {this.newOpenQuestionDTO.QuestionAuditQuestionnaireId}");
+                var validOpenQuestionText = StringValidator.IsInvalidStringByNullOrEmptyOrWhiteSpaceAndLength(this.newOpenQuestionDTO.QuestionText!, 8, 512);
+                var existOpenQuestionText = await AuditQuestionnaireService.ExistOpenQuestionByQuestionnaireIdAndByQuestionText(this.newOpenQuestionDTO!.QuestionAuditQuestionnaireId, this.newOpenQuestionDTO.QuestionText!);
+                if (validOpenQuestionText)
+                {
+                    Console.WriteLine("invalid");
+                    this.questionAlert = "Vraagtekst mag niet leeg zijn. De tekenlengte ligt tussen 8 en 512.";
+                }
+                else if (existOpenQuestionText.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("Question exists");
+                    this.questionAlert = "Vraag is al bestaat.";
+                }
+                else
+                {
+                    Console.WriteLine("valid");
+                    var responseOpenQuestion = await AuditQuestionnaireService.PostOpenQuestion(newOpenQuestionDTO);
+                    if (responseOpenQuestion.IsSuccessStatusCode)
+                    {
+                        Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+                        Console.WriteLine("success post");
+
+                        this.questionAlert = "";
+                        isNewOpenQuestionDialogVisible = false;
+                    }
+                    else
+                    {
+                        Console.WriteLine("failed post");
+                    }
+
+                }               
+                break;
+            case 3:
+                Console.WriteLine($"add new select list :: {numb}");
+                this.newSelectListQuestionDTO!.AnswerText = string.Empty;
+                this.newSelectListQuestionDTO.QuestionAuditQuestionnaireId = this.QuestionnaireId;
+                var validSelectListQuestionText = StringValidator.IsInvalidStringByNullOrEmptyOrWhiteSpaceAndLength(this.newSelectListQuestionDTO.QuestionText!, 8, 512);
+                var validSelectListOption = StringValidator.IsInvalidStringByNullOrEmptyOrWhiteSpaceAndLength(this.newSelectListQuestionDTO.OptionText!, 8, 2014);
+                var existSelectListQuestion = await AuditQuestionnaireService.ExistSelectListByQuestionnaireIdAndByQuestionText(this.newSelectListQuestionDTO.QuestionAuditQuestionnaireId, this.newSelectListQuestionDTO.QuestionText!);
+                if (validSelectListQuestionText)
+                {
+                    Console.WriteLine("invalid");
+                    this.questionAlert = "Vraagtekst mag niet leeg zijn. De tekenlengte ligt tussen 8 en 512.";
+                }
+                else if (existSelectListQuestion.IsSuccessStatusCode)
+                {
+                    Console.WriteLine("Question exists");
+                    this.questionAlert = "Vraag is al bestaat.";
+                }
+                else if (validSelectListOption)
+                {
+                    Console.WriteLine("invalid");
+                    this.optieAlert = "Optietekst mag niet leeg zijn. De tekenlengte ligt tussen 8 en 2014.";
+                }
+                else
+                {
+                    Console.WriteLine("valid");
+                    var responseSelectList = await AuditQuestionnaireService.PostSelectListQuestion(newSelectListQuestionDTO);
+                    if(responseSelectList.IsSuccessStatusCode)
+                    {
+                        Navigation.NavigateTo($"/ManageAuditQuestionnaire/{this.QuestionnaireId}", true);
+                        Console.WriteLine("success post");
+
+                        this.questionAlert = "";
+                        this.optieAlert = "";
+                        isNewSelectListDialogVisible = false;
+                    }
+                    else
+                    {
+                        Console.WriteLine("failed post");
+                    }
+
+                }
+
+                break;
+
+        }
+        
+    }
+
+    private void ShowAddNewOpenQuestionDialog()
+    {
+        isNewOpenQuestionDialogVisible = true;
+        Console.WriteLine($"questionnaire id :: {this.auditQuestionnaire!.Id}, new open question");
+    }
+
+    private void ShowAddNewSelectListDialog()
+    {
+        isNewSelectListDialogVisible = true;
+        Console.WriteLine($"questionnaire id :: {this.auditQuestionnaire!.Id}, new select list");
+    }
+
+}

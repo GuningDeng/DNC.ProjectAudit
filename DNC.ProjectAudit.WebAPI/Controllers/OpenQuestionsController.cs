@@ -1,6 +1,7 @@
 ﻿using DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions;
 using MediatR;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DNC.ProjectAudit.WebAPI.Controllers
@@ -23,7 +24,9 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> GetQuestionById(int id)
         {
-            return Ok(await mediator.Send(new GetOpenQuestionByIdQuery { Id = id }));
+            var question = await mediator.Send(new GetOpenQuestionByIdQuery { Id = id });
+            if (question == null) return NotFound();
+            return Ok(question);
         }
 
         [HttpPost]
@@ -45,6 +48,24 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         {
             await mediator.Send(new DeleteOpenQuestionByIdCommand { Id = id });
             return NoContent();
+        }
+
+        [HttpGet]
+        [Route("{questionText}/ByQuestionText")]
+        public async Task<IActionResult> GetQuestionByQuestionText(string questionText)
+        {
+            var question = await mediator.Send(new GetOpenQuestionByQuestionTextQuery { QuestionText = questionText});
+            if (question == null) return NotFound();
+            return Ok(question);
+        }
+
+        [HttpGet]
+        [Route("{questionnaireId}/{questionText}/OpenQuestionByQuestionnaireIdAndByQuestionText")]
+        public async Task<IActionResult> GetByQuestionnaireIdAndQuestionByQuestionText(int questionnaireId, string questionText)
+        {
+            var question = await mediator.Send(new GetOpenQuestionByQuestionnaireIdAndByQuestionTextQuery { QuestionnaireId = questionnaireId, QuestionText = questionText });
+            if (question == null) return NotFound();
+            return Ok(question);
         }
 
     }

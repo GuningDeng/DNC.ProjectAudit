@@ -29,7 +29,7 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
 
             RuleFor(m => m.MultipleChoiceQuestion!.QuestionText)
                 .Length(8, 512)
-                .WithMessage("Question text cannot be longer than 512 letters");
+                .WithMessage("Question text character length must be between 8 and 512");
 
 
             RuleFor(m => m.MultipleChoiceQuestion!.OptionText)
@@ -38,7 +38,7 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
 
             RuleFor(m => m.MultipleChoiceQuestion!.OptionText)
                 .Length(8, 2048)
-                .WithMessage("Option text cannot be longer than 512 letters");
+                .WithMessage("Option text character length must be between 8 and 2048");
 
             RuleFor(m => m.MultipleChoiceQuestion!.QuestionAuditQuestionnaireId)
                 .MustAsync(async (id, cancellation) =>
@@ -62,11 +62,24 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
             this.mapper = mapper;
         }
 
+        /// <summary>
+        /// There cannot be repeated questions in a questionnaire.
+        /// Check whether the question text and questionnaire id already exist.
+        /// If the question text and questionnaire id already exist,
+        /// the save request will be aborted.
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        /// <exception cref="ValidationException"></exception>
         public async Task<MultipleChoiceQuestionDTO> Handle(AddMultipleChoiceQuestionCommand request, CancellationToken cancellationToken)
         {
+            var existing = await uow.MultipleChoiceQuestionRepository.GetQuestionByQuestionnaireIdAndQuestionText(request.MultipleChoiceQuestion!.QuestionAuditQuestionnaireId, request.MultipleChoiceQuestion.QuestionText!);
+            if(existing != null) throw new ValidationException("There is already a question with the same questiontext.");
+            
             await uow.MultipleChoiceQuestionRepository.Create(mapper.Map<MultipleChoiceQuestion>(request.MultipleChoiceQuestion));
             await uow.Commit();
-            return request.MultipleChoiceQuestion!;
+            return request.MultipleChoiceQuestion;
         }
     }
 

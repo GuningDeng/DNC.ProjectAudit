@@ -30,11 +30,11 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions
 
             RuleFor(o => o.OpenQuestion!.QuestionText)
                 .Length(8, 512)
-                .WithMessage("Question text cannot be longer than 512 letters");
+                .WithMessage("Question text character length must be between 8 and 512");
 
             RuleFor(o => o.OpenQuestion!.AnswerText)
-                .MaximumLength(2056)
-                .WithMessage("Text cannot be longer than 512 letters");
+                .MaximumLength(2048)
+                .WithMessage("Text character length must be between 8 and 2048");
 
             RuleFor(o => o.OpenQuestion!.QuestionAuditQuestionnaireId)
                 .MustAsync(async (id, cancellation) =>
@@ -60,6 +60,9 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions
 
         public async Task<OpenQuestionDTO> Handle(AddOpenQuestionCommand request, CancellationToken cancellationToken)
         {
+            var existing = await uow.OpenQuestionRepository.GetQuestionByQuestionnaireIdAndQuestionText(request.OpenQuestion!.QuestionAuditQuestionnaireId, request.OpenQuestion.QuestionText!);
+            if (existing != null) throw new ValidationException("There is already a question with the same questiontext.");
+
             await uow.OpenQuestionRepository.Create(mapper.Map<OpenQuestion>(request.OpenQuestion));
             await uow.Commit();
             return request.OpenQuestion!;

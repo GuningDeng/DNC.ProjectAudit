@@ -34,8 +34,8 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
             }
 
             existing.QuestionText = request.SelectListQuestion.QuestionText;
-            existing.AnswerText = request.SelectListQuestion.QuestionText;
-            existing.OptionText = request.SelectListQuestion.QuestionText;
+            existing.AnswerText = request.SelectListQuestion.AnswerText;
+            existing.OptionText = request.SelectListQuestion.OptionText;
             existing.IsDisplay = request.SelectListQuestion.IsDisplay;
             existing.PriorityIndication = request.SelectListQuestion.PriorityIndication;
             existing.QuestionAuditQuestionnaireId = request.SelectListQuestion.QuestionAuditQuestionnaireId;

@@ -14,5 +14,8 @@ namespace DNC.ProjectAudit.Application.Interfaces.InterfacesAuditManagement
         Task<IEnumerable<OpenQuestion>> GetQuestionsByAudtiQuestionnaireId(int id);
         Task<IEnumerable<OpenQuestion>> GetOpenQuestionsByAudtiQuestionnaireIdAndByDisplayPriorityIndication(int id);
         OpenQuestion GetQuestionByQuestionText(string questionText);
+        Task<OpenQuestion> GetByQuestionText(string questionText);
+        Task<OpenQuestion> GetQuestionByQuestionnaireIdAndQuestionText(int questionnaireId, string questionTex);
+
     }
 }

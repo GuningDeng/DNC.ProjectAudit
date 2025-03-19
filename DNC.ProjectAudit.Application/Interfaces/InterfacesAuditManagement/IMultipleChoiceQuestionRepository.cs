@@ -14,5 +14,7 @@ namespace DNC.ProjectAudit.Application.Interfaces.InterfacesAuditManagement
         Task<IEnumerable<MultipleChoiceQuestion>> GetQuestionsByDisplayPriorityIndication();
         Task<IEnumerable<MultipleChoiceQuestion>> GetQuestionsByAudtiQuestionnaireIdByIsDisplayPriorityIndication(int id);
         MultipleChoiceQuestion GetByQuestionText(string questionText);
+        Task<MultipleChoiceQuestion> GetQuestionByQuestionText(string questionText);
+        Task<MultipleChoiceQuestion> GetQuestionByQuestionnaireIdAndQuestionText(int questionnaireId, string questionText);
     }
 }

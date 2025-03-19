@@ -33,6 +33,8 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
                 if (exist != null) throw new ValidationException("The Question already exists");
             }
 
+            Console.WriteLine($"request.MultipleChoiceQuestion, IsDisplay :: {request.MultipleChoiceQuestion.IsDisplay}");
+
             existing.OptionText = request.MultipleChoiceQuestion.OptionText;
             existing.OptionText = request.MultipleChoiceQuestion.OptionText;
             existing.AnswerText = request.MultipleChoiceQuestion.AnswerText;

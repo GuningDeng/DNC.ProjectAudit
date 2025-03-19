@@ -16,7 +16,7 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetMultipleChoiceQuestion()
+        public async Task<IActionResult> GetMultipleChoiceQuestions()
         {
             return Ok(await mediator.Send(new GetAllMultipleChoiceQuestionsQuery()));
         }
@@ -25,13 +25,15 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         [Route("{id}")]
         public async Task<IActionResult> GetQuestionById(int id)
         {
-            return Ok(await mediator.Send(new GetMultipleChoiceQuestionByIdQuery { Id = id}));
+            var question = await mediator.Send(new GetMultipleChoiceQuestionByIdQuery { Id = id });
+            if (question == null) return NotFound();
+            return Ok(question);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateMultipleChoice([FromBody] MultipleChoiceQuestionDTO multipleChoice)
         {
-            return Created("", await mediator.Send(new AddMultipleChoiceQuestionCommand { MultipleChoiceQuestion = multipleChoice }));
+            return Created("", await mediator.Send(new AddMultipleChoiceQuestionCommand { MultipleChoiceQuestion = multipleChoice}));
         }
 
         [HttpPut]
@@ -49,6 +51,24 @@ namespace DNC.ProjectAudit.WebAPI.Controllers
         {
             await mediator.Send(new DeleteMultipleChoiceQuestionByIdCommand { Id = id });
             return NoContent();
+        }
+
+        [HttpGet]
+        [Route("{questionText}/MultipleChoiceByQuestionText")]
+        public async Task<IActionResult> GetQuestionByQuestionText(string questionText)
+        {
+            var question = await mediator.Send(new GetMultipleChoiceQuestionByQuestionTextQuery { QuestionText = questionText });
+            if (question == null) return NotFound();
+            return Ok(question);
+        }
+
+        [HttpGet]
+        [Route("{questionnaireId}/{questionText}/MultipleChoiceByQuestionnaireIdAndByQuestionText")]
+        public async Task<IActionResult> GetByQuestionnaireIdAndQuestionByQuestionText(int questionnaireId, string questionText)
+        {
+            var question = await mediator.Send(new GetMultipleChoiceQuestionByQuestionnaireIdAndByQuestionTextQuery { QuestionnaireId = questionnaireId, QuestionText = questionText});
+            if (question == null) return NotFound();
+            return Ok(question);
         }
 
     }

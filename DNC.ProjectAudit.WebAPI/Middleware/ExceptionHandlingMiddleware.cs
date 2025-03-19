@@ -1,6 +1,8 @@
 ﻿using DNC.ProjectAudit.Application.Exceptions;
 using System.Text.Json;
+using Microsoft.AspNetCore.Http;
 using FV = FluentValidation;
+
 namespace DNC.ProjectAudit.WebAPI.Middleware
 {
     public class OurOwnMiddelware
@@ -16,7 +18,7 @@ namespace DNC.ProjectAudit.WebAPI.Middleware
             _next = next;
         }
 
-        public async Task Invok(HttpContext context)
+        public async Task Invoke(HttpContext context)
         {
             try
             {
@@ -24,7 +26,7 @@ namespace DNC.ProjectAudit.WebAPI.Middleware
             }
             catch (Exception ex)
             {
-                var response = new ErrorResonseInfo();
+                var response = new ErrorResponseInfo();
                 response.Message = ex.Message;
                 switch (ex)
                 {
@@ -35,7 +37,7 @@ namespace DNC.ProjectAudit.WebAPI.Middleware
                     case RelationNotFoundException:
                         response.StatusCode = StatusCodes.Status404NotFound;
                         break;
-                        default:
+                    default:
                         response.StatusCode = StatusCodes.Status500InternalServerError;
                         break;
                 }
@@ -44,11 +46,11 @@ namespace DNC.ProjectAudit.WebAPI.Middleware
                 await context.Response.WriteAsync(JsonSerializer.Serialize(response));
             }
         }
+    }
 
-        public class ErrorResonseInfo
-        {
-            public int StatusCode { get; set; }
-            public string? Message { get; set; }
-        }
+    public class ErrorResponseInfo
+    {
+        public int StatusCode { get; set; }
+        public string? Message { get; set; }
     }
 }

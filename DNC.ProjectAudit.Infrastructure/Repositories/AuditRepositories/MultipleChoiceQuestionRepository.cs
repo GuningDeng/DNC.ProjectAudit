@@ -29,6 +29,19 @@ namespace DNC.ProjectAudit.Infrastructure.Repositories.AuditRepositories
         {
             return _context.MultipleChoiceQuestions.Where(m => m.QuestionText == questionText).FirstOrDefault()!;
         }
+
+        public async Task<MultipleChoiceQuestion> GetQuestionByQuestionnaireIdAndQuestionText(int questionnaireId, string questionText)
+        {
+            var question = await _context.MultipleChoiceQuestions.Where(m => m.QuestionAuditQuestionnaireId == questionnaireId && m.QuestionText == questionText).FirstOrDefaultAsync();
+            return question!;
+        }
+
+        public async Task<MultipleChoiceQuestion> GetQuestionByQuestionText(string questionText)
+        {
+            var question = await _context.MultipleChoiceQuestions.Where(m => m.QuestionText == questionText).FirstOrDefaultAsync();
+            return question!;
+        }
+
         //GetQuestionsByAudtiQuestionnaireId
         public async Task<IEnumerable<MultipleChoiceQuestion>> GetQuestionsByAudtiQuestionnaireId(int id)
         {

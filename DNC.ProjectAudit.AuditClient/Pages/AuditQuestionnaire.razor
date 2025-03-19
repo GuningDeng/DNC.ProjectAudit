@@ -18,6 +18,9 @@
 
 <div class="container mt-4">
     <div class="card">
+        <div class="card-header">
+            @PageName
+        </div>
         <div class="card-body">
             @if (auditQuestionnaire == null || QuestionnaireInfo == null)
             {
@@ -29,8 +32,26 @@
                 <div class="mb-3">Beschrijving: @auditQuestionnaire.Description</div>
                 <div class="mb-3">Gewest: @auditQuestionnaire.Region</div>
                 <div class="mb-3">Deadline voor inzending: @auditQuestionnaire.SubmissionDeadline</div>
-                <div class="mb-3">Is gestart: @auditQuestionnaire.IsStarted</div>
-                <div class="mb-3">Is voltooid: @auditQuestionnaire.IsCompleted</div>
+                <div class="mb-3">Is gestart:
+                    @if (@auditQuestionnaire.IsStarted)
+                    {
+                        <span>Ja</span>
+                    }
+                    else
+                    {
+                        <span>Nee</span>
+                    }
+                </div>
+                <div class="mb-3">Is voltooid:
+                    @if (@auditQuestionnaire.IsCompleted)
+                    {
+                        <span>Ja</span>
+                    }
+                    else
+                    {
+                        <span>Nee</span>
+                    }
+                </div>
 
                 <h6 class="mt-5 mb-3 fw-bold">Multiple choice Vraag</h6>
 
@@ -86,7 +107,7 @@
                     }
 
                 }
-
+                
                 <h6 class="mt-5 mb-3 fw-bold">Selectielijst</h6>
                 if (this.QuestionnaireInfo.SelectListInfos!.Count == 0)
                 {
@@ -112,10 +133,7 @@
                             <div class="mb-3">Prioriteit: @question.PriorityIndication</div>
                         </div>
                     }
-
-                }
-
-
+                }                
             }
         </div>
     </div>
@@ -125,7 +143,7 @@
     [Parameter]
     public int QuestionnaireId { get; set; }
 
-    private const string PageName = "AuditQuestionnaire";
+    private const string PageName = "AuditQuestionnaire Detail";
 
     private AuditQuestionnaireDetailDTO? auditQuestionnaire;
 
@@ -149,9 +167,9 @@
             QuestionnaireInfo!.Name = this.auditQuestionnaire.Name;
 
             List<QuestionWithOptionInfoList> multipleChoiceInfos = new List<QuestionWithOptionInfoList>();
-            
+
             List<QuestionWithOptionInfoList> selectListInfos = new List<QuestionWithOptionInfoList>();
-            
+
             List<OpenQuestionInfo> openQuestionInfos = new List<OpenQuestionInfo>();
 
             int index = 0;
@@ -159,7 +177,7 @@
             {
                 QuestionWithOptionInfoList question = new QuestionWithOptionInfoList();
                 List<OptionInfo> multiOptionInfos = new List<OptionInfo>();
-                
+
                 var options = choice.OptionText!.Split(";");
                 foreach(var option in options)
                 {
@@ -255,5 +273,20 @@
             Console.WriteLine($"request.StatusCode :: {request.StatusCode}");
         }
     }
+
+    private void NewMultipleChoice()
+    {
+        Console.WriteLine($"NewMiltpleChoice :: {this.QuestionnaireId}");
+    }
+
+    private void NewOpenQuestion()
+    {
+        Console.WriteLine($"New open question :: {this.QuestionnaireId}");
+    }
+
+    private void NewSelectionList()
+    {
+        Console.WriteLine($"New selection list :: {this.QuestionnaireId}");
+    }    
 
 }

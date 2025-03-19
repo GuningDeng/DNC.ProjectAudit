@@ -36,7 +36,8 @@ else{
                         <th scope="col">Is started</th>
                         <th scope="col">Is completed</th>
                         <th scope="col">Deadline</th>
-                        <th scope="col">Edit</th>
+                        <th scope="col">Manage</th>
+                        <th scope="col">Assigning</th>
                         <th scope="col">View</th>
                         <th scope="col">Delete</th>
                     </tr>
@@ -53,8 +54,13 @@ else{
                             <td>@question.IsCompleted</td>
                             <td>@question.SubmissionDeadline</td>
                             <td>
-                                <button class="btn btn-link" @onclick="() => EditQuestionair(question.Id)">
+                                <button class="btn btn-link" @onclick="() => ManageQuestionair(question.Id)">
                                     <i class="fas fa-edit"></i> <!-- Font Awesome Edit Icon -->
+                                </button>
+                            </td>
+                            <td>
+                                <button class="btn btn-link">
+                                    <i class="fas fa-user-plus"></i> <!-- Font Awesome User Plus Icon -->
                                 </button>
                             </td>
                             <td>
@@ -138,8 +144,9 @@ else{
 
     }
 
-    private void EditQuestionair(int id){
+    private void ManageQuestionair(int id){
         Console.WriteLine($"edit:: {id}");
+        Navigation.NavigateTo($"/ManageAuditQuestionnaire/{id}");
     }
 
     private void ViewQuestionair(int id){

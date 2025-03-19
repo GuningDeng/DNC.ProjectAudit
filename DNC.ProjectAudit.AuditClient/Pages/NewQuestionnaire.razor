@@ -7,6 +7,7 @@
 @using DNC.ProjectAudit.AuditClient.Entities
 @using DNC.ProjectAudit.AuditClient.Services
 @using DNC.ProjectAudit.Domain.Entities.Enums
+@using System.Net
 
 @inject HttpClient httpClient
 @inject NavigationManager Navigation
@@ -20,102 +21,185 @@
             @PageName
         </div>
         <div class="card-body">
+            <div class="form-group mb-3">
+                <label for="name">Naam van enquête</label>
+                <label class="form-label text-danger">@nameAlert</label>
+                <input type="text" id="name" class="form-control" @oninput="(e) => InputQuestionnaireName(e)" />
+            </div>
 
-            <EditForm Model="@questionnaireInfo" OnValidSubmit="@HandleValidSubmit">
-                <DataAnnotationsValidator />
-                <ValidationSummary />
+            <div class="form-group mb-3">
+                <label for="description">Beschrijving van enquête</label>
+                <textarea id="description" class="form-control" rows="3" @bind="@auditQuestionnaire!.Description" @bind:event="oninput" />
+            </div>
 
-                <div class="form-group mb-3">
-                    <label for="name">Naam van enquête</label>
-                    <input id="name" class="form-control" @bind-value="@questionnaireInfo!.Name" />
-                    <ValidationMessage For="@(() => questionnaireInfo.Name)" />
-
+            <div class="form-group mb-3">
+                <label>Gewest</label>
+                <div>
+                    @foreach(var region in Enum.GetValues(typeof(Region)))
+                    {
+                        <div class="form-check form-check-inline">
+                            <input type="radio" class="form-check-input" id="@region" name="region" value="@region" @onchange="(e) => OnOptionSelected(e)" />
+                            <label class="form-check-label" for="@region">@region</label>
+                        </div>
+                    }
                 </div>
-                <div class="form-group mb-3">
-                    <label for="description">Beschrijving van enquête</label>
-                    <input id="description" class="form-control" @bind-value="@questionnaireInfo!.Description" />
-                    <ValidationMessage For="@(() => questionnaireInfo.Description)" />
+            </div>
 
-                </div>
-                <div class="form-group mb-3">
-                    <label>Gewest</label>
-                    <div>
-                        @foreach(var region in Enum.GetValues(typeof(Region)))
-                        {
-                            <div class="form-check form-check-inline">
-                                <input type="radio" class="form-check-input" id="@region" name="region" value="@region" @onchange="(e) => OnOptionSelected(e)" />
-                                <label class="form-check-label" for="@region">@region</label>
-                            </div>
-                        }
-                    </div>
-                </div>
+            <div class="form-group mb-3">
+                <label for="submissionDeadline">Deadline voor inzending</label>
+                <input type="date" class="form-control" @bind-value="@auditQuestionnaire.SubmissionDeadline" />
+            </div>
 
-                <div class="form-group mb-3">
-                    <label for="submissionDeadline">Deadline voor inzending</label>
-                    <input type="date" class="form-control" @bind-value="@questionnaireInfo.SubmissionDeadline" />
-                    <ValidationMessage For="@(() => questionnaireInfo.SubmissionDeadline)" />
-                </div>
-                <button type="submit" class="btn btn-primary">Submit</button>
-
-            </EditForm>
+            <div class="mt-4 mb-5 d-flex justify-content-end">
+                <button class="btn btn-outline-primary me-2" @onclick="SaveQuestionnaire" disabled="@(IsDisable ? true : false)">Toevoegen</button>
+                <button class="btn btn-outline-secondary" @onclick="Cancel">Annuleren</button>
+            </div>
 
         </div>
     </div>
 </div>
+
+@if (isDialogVisible)
+{
+    <Dialog @bind-Visible="isDialogVisible" Title="Nieuwe enquête" OnClose="CloseDialog" OnConfirm="ConfirmModal">
+        <p>@this.dialogContent</p>
+    </Dialog>
+}
 
 @code {
     private const string PageName = "New AuditQuestionnaire";
     private AuditQuestionnaireDetailDTO? auditQuestionnaire = new AuditQuestionnaireDetailDTO();
     private QuestionnaireInfo? questionnaireInfo = new QuestionnaireInfo();
     private bool isDialogVisible = false;
+    private string dialogContent = "Nieuw enquête succesvol toegevoegd.";
+
+    private string inputValue = string.Empty;
+    private string? QuestionnaireName { get; set; }
+    private string? Description { get; set; }
+    private string? nameAlert { get; set; } = "";
+    private bool isInputEmpty;
+    protected bool IsDisable { get; set; }
+
+    protected override void OnInitialized()
+    {
+        this.auditQuestionnaire!.SubmissionDeadline = DateTime.Today;
+        this.auditQuestionnaire.Region = Region.Antwerp;
+    }
+
+    /// <summary>
+    /// Verify whether there is a duplicate name
+    /// if there is a duplicate name,
+    /// if name is empty,
+    /// if name is longer than 256,
+    /// if name is less than 8,
+    /// submit button is disabled
+    /// </summary>
+    /// <param name="e"></param>
+    /// <returns></returns>
+    private async Task InputQuestionnaireName(ChangeEventArgs e){
+        string name = e.Value!.ToString()!;
+
+        try{
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                Console.WriteLine($"inputedTitle.Length: {name.Length}");
+                this.IsDisable = true;
+                this.nameAlert = " !!Naam mag niet leeg.";
+            }
+            else if (name.Length > 256 || name.Length < 8)
+            {
+                this.IsDisable = true;
+                this.nameAlert = " !!Naam moet tussen de 8 en 256 letters lang zijn.";
+            }
+            else
+            {
+                var response = await this.httpClient.GetAsync($"AuditQuestionnaires/{name}/ByName");
+                if(response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    this.nameAlert = "";
+                    this.QuestionnaireName = name;
+                    this.IsDisable = false;
+                }
+                else
+                {
+                    this.IsDisable = true;
+                    this.nameAlert = " !!Naam is al bestaat.";
+                }
+
+            }
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
 
     private void OnOptionSelected(ChangeEventArgs e)
     {
         var enumValue = (Region)Enum.Parse(typeof(Region), e.Value!.ToString()!);
         Console.WriteLine($"enumValue: {enumValue!.ToString()}");
-        this.questionnaireInfo!.Region = enumValue;
+        this.auditQuestionnaire!.Region = enumValue;
+        Console.WriteLine($"auditQuestionnaire.Region: {this.auditQuestionnaire!.Region}");
     }
 
-    private async void HandleValidSubmit()
-    {
-
-        string name = "DNC_" + questionnaireInfo!.Name;
-
-        Console.WriteLine($"Questionnaire Created: {name}, {questionnaireInfo.Description}, Regions: {questionnaireInfo.Region}, Submission Deadline: {questionnaireInfo.SubmissionDeadline.ToShortDateString()}");
-
-        var request = await this.httpClient.GetAsync($"AuditQuestionnaires/{name}/ByName");
-        if(request.IsSuccessStatusCode)
+    private async Task SaveQuestionnaire(){
+        if(string.IsNullOrWhiteSpace(this.QuestionnaireName))
         {
-            // ShowDialog();
-            Console.WriteLine($"request.IsSuccessStatusCode :: {request.IsSuccessStatusCode} | questionnarie already exists");
+            IsDisable = true;
+            this.nameAlert += " !!Name mag niet leeg.";
+            Console.WriteLine($"Title: {this.auditQuestionnaire!.Name}");
+
         }
         else
-        {          
-            auditQuestionnaire!.Name = name;
-            auditQuestionnaire.Description = this.questionnaireInfo.Description;
-            auditQuestionnaire.Region = this.questionnaireInfo.Region;
+        {
+            auditQuestionnaire!.Name = this.QuestionnaireName;
             auditQuestionnaire.CreatedBy = 1;
             auditQuestionnaire.CreatedDate = DateTime.Now;
-            auditQuestionnaire.SubmissionDeadline = this.questionnaireInfo.SubmissionDeadline;
             auditQuestionnaire.ApprovedByProjetManagerId = 0;
             auditQuestionnaire.IsStarted = false;
             auditQuestionnaire.IsCompleted = false;
-            Console.WriteLine($"auditQuestionnaire :: Name-> {auditQuestionnaire.Name}, description-> {auditQuestionnaire.Description}, region-> {auditQuestionnaire.SubmissionDeadline},");
+            Console.WriteLine($"auditQuestionnaire :: Name-> {auditQuestionnaire.Name}, description-> {auditQuestionnaire.Description}, region-> {auditQuestionnaire.Region}, deadline-> {auditQuestionnaire.SubmissionDeadline},");
 
             // saving to database
             var response = await AuditQuestionnaireService.PostAuditQuestionnaire(auditQuestionnaire);
-            if(response.IsSuccessStatusCode)
+            if (response.IsSuccessStatusCode)
             {
-                Navigation.NavigateTo("/success");
                 Console.WriteLine("post success");
+                ShowDialog();
             }
             else
             {
+                this.dialogContent = "Het toevoegen van een nieuwe enquête is mislukt. Probeer het later opnieuw.";
+                ShowDialog();
                 Console.WriteLine("post failed");
             }
 
         }
-        
+
+    }
+    
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private void ShowDialog()
+    {
+        isDialogVisible = true;
+    }
+
+    private void CloseDialog()
+    {
+        isDialogVisible = false;
+    }
+
+    private async Task ConfirmModal()
+    {
+        await Task.Delay(700);
+        isDialogVisible = false;
+
+        // Redirect
+        Navigation.NavigateTo("/AuditQuestionnaires");
     }
        
 

@@ -1,4 +1,7 @@
-﻿using DNC.ProjectAudit.Application.Interfaces;
+﻿using AutoMapper;
+using DNC.ProjectAudit.Application.Interfaces;
+using DNC.ProjectAudit.Application.Interfaces.InterfacesAuditManagement;
+using DNC.ProjectAudit.Domain.Entities.AuditManagement.Questions;
 using FluentValidation;
 using MediatR;
 using System;
@@ -28,7 +31,7 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
 
             RuleFor(o => o.SelectListQuestion!.QuestionText)
                 .Length(8, 512)
-                .WithMessage("Question text cannot be longer than 512 letters");
+                .WithMessage("Question text character length must be between 8 and 512.");
 
 
             RuleFor(o => o.SelectListQuestion!.OptionText)
@@ -37,7 +40,7 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
 
             RuleFor(o => o.SelectListQuestion!.OptionText)
                 .Length(8, 2048)
-                .WithMessage("Option text cannot be longer than 512 letters");
+                .WithMessage("Option text text character length must be between 8 and 2048");
 
             RuleFor(o => o.SelectListQuestion!.QuestionAuditQuestionnaireId)
                 .MustAsync(async (id, cancellation) =>
@@ -47,6 +50,28 @@ namespace DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
                 })
                 .WithMessage("The audit assignment does not exist");
 
+        }
+    }
+
+    public class AddSelectListQuestionCommandhandler : IRequestHandler<AddSelectListQuestionCommand, SelectListQuestionDTO>
+    {
+        private readonly IUnitofWork uow;
+        private readonly IMapper mapper;
+
+        public AddSelectListQuestionCommandhandler(IUnitofWork uow, IMapper mapper)
+        {
+            this.uow = uow;
+            this.mapper = mapper;
+        }
+
+        public async Task<SelectListQuestionDTO> Handle(AddSelectListQuestionCommand request, CancellationToken cancellationToken)
+        {
+            var existing = await uow.SelectListQuestionRepository.GetQuestionByQuestionnaireIdAndQuestionText(request.SelectListQuestion!.QuestionAuditQuestionnaireId, request.SelectListQuestion.QuestionText!);
+            if (existing != null) throw new ValidationException("There is already a question with the same questiontext.");
+
+            await uow.SelectListQuestionRepository.Create(mapper.Map<SelectListQuestion>(request.SelectListQuestion));
+            await uow.Commit();
+            return request.SelectListQuestion;
         }
     }
 

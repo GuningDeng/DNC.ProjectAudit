@@ -14,5 +14,7 @@ namespace DNC.ProjectAudit.Application.Interfaces.InterfacesAuditManagement
         Task<IEnumerable<SelectListQuestion>> GetAllSelectListQuestionsByAudtiQuestionnaireId(int id);
         Task<IEnumerable<SelectListQuestion>> GetSelectListQuestionsByAudtiQuestionnaireIdAndByDisplayPriorityIndication(int id);
         SelectListQuestion GetQuestionByQuestionText(string questionText);
+        Task<SelectListQuestion> GetByQuestionText(string questionText);
+        Task<SelectListQuestion> GetQuestionByQuestionnaireIdAndQuestionText(int questionnaireId, string questionTex);
     }
 }

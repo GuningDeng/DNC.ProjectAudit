@@ -29,9 +29,21 @@ namespace DNC.ProjectAudit.Infrastructure.Repositories.AuditRepositories
             return await _context.OpenQuestions.Where(o => o.IsDisplay == true && o.Id > 0).OrderByDescending(o => o.PriorityIndication).ToListAsync();
         }
 
+        public async Task<OpenQuestion> GetByQuestionText(string questionText)
+        {
+            var question = await _context.OpenQuestions.FirstOrDefaultAsync(o => o.QuestionText == questionText);
+            return question!;
+        }
+
         public async Task<IEnumerable<OpenQuestion>> GetOpenQuestionsByAudtiQuestionnaireIdAndByDisplayPriorityIndication(int id)
         {
             return await _context.OpenQuestions.Where(o => o.Id > 0 && o.IsDisplay == true).OrderByDescending(o => o.PriorityIndication).ToListAsync();
+        }
+
+        public async Task<OpenQuestion> GetQuestionByQuestionnaireIdAndQuestionText(int questionnaireId, string questionTex)
+        {
+            var question = await _context.OpenQuestions.FirstOrDefaultAsync(o => o.QuestionAuditQuestionnaireId == questionnaireId && o.QuestionText == questionTex);
+            return question!;
         }
 
         public OpenQuestion GetQuestionByQuestionText(string questionText)

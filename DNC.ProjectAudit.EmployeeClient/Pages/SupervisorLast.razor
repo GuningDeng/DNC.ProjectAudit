@@ -1,0 +1,28 @@
+﻿@page "/Supervisor/Last"
+
+@using System.Net.Http;
+@using System.Net.Http.Json;
+@using System.Threading.Tasks;
+@using DNC.ProjectAudit.Application.CQRS.People.Supervisors
+@using DNC.ProjectAudit.EmployeeClient.Services
+
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject EmployeeService EmployeeService
+
+<h3>SupervisorLast</h3>
+
+@code {
+    private const string PageName = "Supervisor Last";
+    private const string apiEndpoint = "Supervisors";
+
+    private SupervisorDTO? supervisorDTO;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var response = await Http.GetFromJsonAsync<SupervisorDTO>($"api/supervisors/last");
+        // supervisorDTO = await EmployeeService.GetLastProjectManagerDTOAsync()
+
+    }
+
+}

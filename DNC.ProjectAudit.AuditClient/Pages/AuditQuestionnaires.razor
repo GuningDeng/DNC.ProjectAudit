@@ -17,95 +17,54 @@
 
 <PageTitle>@PageName</PageTitle>
 
-@if(auditQuestionnaireDetailDTOs == null){
-    <p><em>Loading questions...</em></p>
-}
-else{
-    <div class="card">
-        <div class="card-header">
-            @PageName
+
+<FluentBodyContent>
+    @if (auditQuestionnaireDetailDTOs == null)
+    {
+        <p><em>Loading questions...</em></p>
+    }
+    else
+    {
+        <h3 class="mb-5">AuditQuestionnaires</h3>
+        <div>
+            <FluentDataGrid 
+                Items="@auditQuestionnaireDetailDTOs!.AsQueryable()" 
+                TGridItem="AuditQuestionnaireDetailDTO"
+                Pagination="@pagination"
+                MultiLine="true"
+                RowSize="DataGridRowSize.Large"
+            >
+            <PropertyColumn Title="ID" Property="@(a => a.Id)" Sortable="true" />
+                <PropertyColumn Title="Naam" Property="@(a => a.Name)" Sortable="true" />
+                    <PropertyColumn Title="Beschrijving" Property="@(a => a.Description)" />
+                    <PropertyColumn Title="Regio" Property="@(a => a.Region)" Sortable="true" />
+                    <PropertyColumn Title="Is gestart" Property="@(a => a.IsStarted)" Sortable="true" />
+                    <PropertyColumn Title="Is afgerond" Property="@(a => a.IsCompleted)" Sortable="true" />
+                    <PropertyColumn Title="Deadline" Property="@(a => a.SubmissionDeadline)" Format="dd-MM-yyyy" Sortable="true" />
+                    <TemplateColumn Title="Manage" Align="Align.Center">
+                        <FluentButton @onclick="() => ManageQuestionair(context.Id)" IconEnd="@(new Icons.Regular.Size16.Edit())" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="Assigning" Align="Align.Center">
+                        <FluentButton @onclick="() => ShowDialog(context.Id)" IconEnd="@(new Icons.Regular.Size16.TaskListSquareLtr())" />
+                    </TemplateColumn>
+                    <TemplateColumn Title="Actions" Align="Align.Center">
+                        <FluentButton @onclick="() => ViewQuestionair(context.Id)" IconEnd="@(new Icons.Regular.Size16.Eye())" IconOnly="true" />
+                        <FluentButton @onclick="() => ShowDialog(context.Id)" IconEnd="@(new Icons.Regular.Size16.Delete())" IconOnly="true" />
+                    </TemplateColumn>
+            </FluentDataGrid>
+
+            <FluentPaginator State="@pagination" />
         </div>
-        <div class="card-body">
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Name</th>
-                        <th scope="col">Description</th>
-                        <th scope="col">Region</th>
-                        <th scope="col">Is started</th>
-                        <th scope="col">Is completed</th>
-                        <th scope="col">Deadline</th>
-                        <th scope="col">Manage</th>
-                        <th scope="col">Assigning</th>
-                        <th scope="col">View</th>
-                        <th scope="col">Delete</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var question in auditQuestionnaireDetailDTOs)
-                    {
-                        <tr>
-                            <td>@question.Id</td>
-                            <td>@question.Name</td>
-                            <td>@question.Description</td>
-                            <td>@question.Region</td>
-                            <td>@question.IsStarted</td>
-                            <td>@question.IsCompleted</td>
-                            <td>@question.SubmissionDeadline</td>
-                            <td>
-                                <button class="btn btn-link" @onclick="() => ManageQuestionair(question.Id)">
-                                    <i class="fas fa-edit"></i> <!-- Font Awesome Edit Icon -->
-                                </button>
-                            </td>
-                            <td>
-                                <button class="btn btn-link">
-                                    <i class="fas fa-user-plus"></i> <!-- Font Awesome User Plus Icon -->
-                                </button>
-                            </td>
-                            <td>
-                                <button class="btn btn-link" @onclick="() => ViewQuestionair(question.Id)">
-                                    <i class="fas fa-eye"></i> <!-- Font Awesome Eye Icon -->
-                                </button>
-                            </td>
-                            <td>
-                                <button class="btn btn-link" @onclick="() => ShowDialog(question.Id)">
-                                    <i class="fa fa-eraser"></i> <!-- Font Awesome eraser Icon -->
-                                </button>
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    }
+</FluentBodyContent>
 
-            <!-- Pagination Controls -->
-            <nav aria-label="Page navigation">
-                <ul class="pagination">
-                    <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                        <a class="page-link" @onclick="() => ChangePage(currentPage - 1)">Previous</a>
-                    </li>
-                    @for (int i = 1; i <= TotalPages; i++)
-                    {
-                        <li class="page-item @(currentPage == i ? "active" : "")">
-                            <a class="page-link" @onclick="() => ChangePage(i)">@i</a>
-                        </li>
-                    }
-                    <li class="page-item @(currentPage == TotalPages ? "disabled" : "")">
-                        <a class="page-link" @onclick="() => ChangePage(currentPage + 1)">Next</a>
-                    </li>
-                </ul>
-            </nav>
-
-
-        </div>
-    </div>
-}
 
 @if (isDialogVisible)
 {
     <Dialog @bind-Visible="isDialogVisible" Title="Vragenlijst verwijderen" OnClose="CloseDialog" OnConfirm="ConfirmModal">
         <p>Weet u zeker dat u de vragenlijst wilt verwijderen?</p>
     </Dialog>
+
 }
 
 @code {
@@ -121,7 +80,9 @@ else{
 
     private int selectedId = 0;
     private bool isDialogVisible = false;
-    
+
+    PaginationState pagination = new PaginationState() { ItemsPerPage = 10 };
+
     protected override async Task OnInitializedAsync()
     {
         try

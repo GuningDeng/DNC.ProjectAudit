@@ -1,0 +1,71 @@
+﻿@page "/AuditQuestionnaires"
+@using DNC.ProjectAudit.Application.CQRS.Audits
+@using DNC.ProjectAudit.EmployeeClient.Entities
+@using DNC.ProjectAudit.EmployeeClient.Services
+@using System.Net.Http;
+@using System.Net.Http.Json;
+@using System.Threading.Tasks;
+@inject HttpClient httpClient;
+@inject NavigationManager Navigation;
+
+@inject EmployeeService EmployeeService;
+@inject AuditQuestionnaireService AuditQuestionnaireService;
+
+<PageTitle>@PageName</PageTitle>
+
+<h3>AuditQuestionnaires</h3>
+<div style="height:32px"></div>
+<Grid TItem="AuditQuestionnaireDTO"
+    AllowFiltering="true"
+    AllowPaging="true"
+    AllowSorting="true"
+    Class="table table-hover table-bordered table-striped"
+    DataProvider="AuditQuestionnaireDataProvider"
+    PageSize="10"
+    Responsive="true"
+    Unit="Unit.Px"
+    EmptyText="No records to display">
+
+    <GridColumns>
+        <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Id" PropertyName="Id" SortString="Id" SortKeySelector="item => item.Id" FilterTextboxWidth="50" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
+            @context.Id
+        </GridColumn>
+        <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Name" PropertyName="Name" SortString="Name" SortKeySelector="item => item.Name" Class="text-break">
+            @context.Name
+        </GridColumn>
+        <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Gewest" PropertyName="Region" SortString="Region" SortKeySelector="item => item.Region">
+            @context.Region
+        </GridColumn>
+        <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Deadline" PropertyName="SubmissionDeadline" SortString="SubmissionDeadline" SortKeySelector="item => item.SubmissionDeadline" Class="text-break">
+            @context.SubmissionDeadline.ToShortDateString()
+        </GridColumn>
+        <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Action" Sortable=false Filterable=false TextAlignment="Alignment.Center">
+            <Button Color="ButtonColor.Primary" Outline=true Size="ButtonSize.Small" @onclick="()=> HandlerNavigateToAuditQuestionnaire(context.Id)">
+                <Icon Name="IconName.Eye" />
+            </Button>
+        </GridColumn>
+    </GridColumns>
+
+</Grid>
+
+
+@code {
+    private const string PageName = "AuditQuestionnaires";
+    
+    private IEnumerable<AuditQuestionnaireDTO> auditQuestionnaires = default!;
+
+    private async Task<GridDataProviderResult<AuditQuestionnaireDTO>> AuditQuestionnaireDataProvider(GridDataProviderRequest<AuditQuestionnaireDTO> request)
+    {
+        if (auditQuestionnaires is null) // pull employees only one time for client-side filtering, sorting, and paging
+            auditQuestionnaires = await AuditQuestionnaireService.GetAuditQuestionnaireDTOs();   // call a service or an API to pull the employees
+
+        return await Task.FromResult(request.ApplyTo(auditQuestionnaires));
+    }
+
+    private void HandlerNavigateToAuditQuestionnaire(int id)
+    {
+        Console.WriteLine($"Navigate to AuditQuestionnaire {id}");
+        Navigation.NavigateTo($"/AuditQuestionnaire/{id}");
+    }
+
+}

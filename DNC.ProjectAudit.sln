@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNC.ProjectAudit.WebAPI", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNC.ProjectAudit.AuditClient", "DNC.ProjectAudit.AuditClient\DNC.ProjectAudit.AuditClient.csproj", "{6DD0619C-ACC2-49C5-BBD2-1C8731EFCB90}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DNC.ProjectAudit.EmployeeClient", "DNC.ProjectAudit.EmployeeClient\DNC.ProjectAudit.EmployeeClient.csproj", "{825C7DAA-9ADF-4AAF-A6A4-86BC0A9981B0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +49,10 @@ Global
 		{6DD0619C-ACC2-49C5-BBD2-1C8731EFCB90}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6DD0619C-ACC2-49C5-BBD2-1C8731EFCB90}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6DD0619C-ACC2-49C5-BBD2-1C8731EFCB90}.Release|Any CPU.Build.0 = Release|Any CPU
+		{825C7DAA-9ADF-4AAF-A6A4-86BC0A9981B0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{825C7DAA-9ADF-4AAF-A6A4-86BC0A9981B0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{825C7DAA-9ADF-4AAF-A6A4-86BC0A9981B0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{825C7DAA-9ADF-4AAF-A6A4-86BC0A9981B0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -57,5 +63,9 @@ Global
 		{644AEB07-1457-4A55-88FB-05C4FC97956E} = {1E890A0D-B658-4649-B4E0-D7A4AB0B6802}
 		{39DA3DDB-225D-445F-9376-385F8954E4FD} = {BE123F20-139F-4FEC-B207-EA1240B1C464}
 		{6DD0619C-ACC2-49C5-BBD2-1C8731EFCB90} = {BE123F20-139F-4FEC-B207-EA1240B1C464}
+		{825C7DAA-9ADF-4AAF-A6A4-86BC0A9981B0} = {BE123F20-139F-4FEC-B207-EA1240B1C464}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5C61F8FB-DFE1-4308-8B44-5EB658580806}
 	EndGlobalSection
 EndGlobal

@@ -1,0 +1,728 @@
+﻿@page "/AuditQuestionnaire/ProjectManager/{QuestionnaireId:int}"
+
+@using System.Net.Http;
+@using System.Net.Http.Json;
+@using System.Threading.Tasks;
+
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject AuditQuestionnaireService AuditQuestionnaireService
+@using DNC.ProjectAudit.Application.CQRS.Audits
+@using DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
+@using DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions
+@using DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
+@using DNC.ProjectAudit.EmployeeClient.Services
+@using System.Net
+
+@if (auditQuestionnaire is null)
+{
+    <p><em>Loading questions...</em></p>
+}
+else
+{
+    <div class="container">
+        <h3>AuditQuestionnaire</h3>
+        <div class="mt-5">
+            <h5><b>@auditQuestionnaire.Name</b></h5>
+            <div>Beschrijving: @auditQuestionnaire.Description</div>
+            <div>Gewest: @auditQuestionnaire.Region</div>
+            <div>Deadline: @auditQuestionnaire.SubmissionDeadline</div>
+            <div>
+                Gestart: @(auditQuestionnaire.IsStarted ? "Gestart" : "Nog niet gestart")
+            </div>
+            <hr class="mt-5 mb-5" />
+            <div class="mb-5">
+                <div class="mb-3"><b>Multiple Choice Vragen</b></div>
+                <div>
+                    @if (multipleChoiceQuestions!.Any())
+                    {
+                        int index = 1;
+                        @foreach (var question in multipleChoiceQuestions!)
+                        {
+                            string[] options = question.OptionText!.Split(";");
+                            <div class="mt-3">
+                                <b>@index. </b>@question.QuestionText
+                            </div>
+                            @foreach (var option in options.Select((q, i) => new { q, i }))
+                            {
+                                <div class="form-check bm-5">
+                                    <input class="form-check-input" type="checkbox"
+                                    value=""
+                                    id="@option"
+                                    name="@option"
+                                    @onchange="(e) => HandelChoiceOptionSelection(question.QuestionText!, option.i, e.Value!.ToString()!)"
+                                    multiple>
+                                    <label class="form-check-label" for="@option">
+                                        @option.q
+                                    </label>
+                                </div>
+
+                            }
+                            index++;
+
+                        }
+                    }
+                    else
+                    {
+                        <p><em>Geen Multiple choice vragen</em></p>
+                    }
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <div class="mb-3"><b>Open Vragen</b></div>
+                <div>
+                    @if (openQuestions!.Any() && openQuestions != null)
+                    {
+                        for (int index = 0; index < openQuestions.Count; index++)
+                        {
+                            var question = openQuestions[index];
+                            if (question == null || string.IsNullOrEmpty(question.QuestionText))
+                            {
+                                continue; 
+                            }
+
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <b>@(index + 1). </b>@question.QuestionText
+                                </div>
+                                <textarea class="form-control"
+                                placeholder="@question.AnswerText"
+                                rows="5"
+                                @onchange="(e) => { HandelOpenQuestionAnswerUpdate(question.QuestionText, e); }" />
+
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p>Geen Open Vragen</p>
+                    }
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <div class="mb-3"><b>Selectielijst</b></div>
+                <div>
+                    @if (selectListQuestionDTOs!.Any() && selectListQuestionDTOs != null)
+                    {
+
+                        for (int index = 0; index < selectListQuestionDTOs.Count; index++)
+                        {
+                            var question = selectListQuestionDTOs[index];
+                            // Empty value check
+                            if (string.IsNullOrEmpty(question.QuestionText) || question == null)
+                            {
+                                continue; 
+                            }
+
+                            string[] options = GetValidOptions(question.OptionText!);
+                            List<string> selectedOptions = GetSelectedOptions(options);
+
+                            <div class="mb-3">
+                                <div class="mb-3">
+                                    <b>@(index + 1). </b>@question.QuestionText
+                                </div>
+                                <div class="mb-3">
+                                    <select class="form-select" @onchange="(e) => { HandleSelectChange(question.QuestionText!, e); }">
+                                        @foreach (var selection in selectedOptions)
+                                        {
+                                            if (selection == "Selecteer een waarde.")
+                                            {
+                                                <option value="">@selection</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@selection">@selection</option>
+                                            }
+
+                                        }
+
+                                    </select>
+                                </div>
+
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p>Geen Selectielijst</p>
+                    }
+                </div>
+            </div>
+
+            <div style="height:56px">
+            </div>
+            <div class="d-flex justify-content-end">
+                <a class="btn btn-primary" @onclick="HandleUpdateAuditQuestionnaire">Save Auditquestionnaire</a>
+            </div>
+
+            <div style="height:128px"></div>
+
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int QuestionnaireId { get; set; }
+    private const string PageName = $"AuditQuestionnair";
+    private const string apiEndpoint = "AuditQuestionnaires/{0}/Quick";
+    private AuditQuestionnaireDetailDTO? auditQuestionnaire;
+    private List<MultipleChoiceQuestionDTO> multipleChoiceQuestions = new();
+    private List<OpenQuestionDTO> openQuestions = new();
+    private List<SelectListQuestionDTO> selectListQuestionDTOs = new();
+
+    private Dictionary<string, string?> choiceAnswersDictionary = new();
+    private Dictionary<string, string?> openQuestionAnswersDictionary = new();
+    private Dictionary<string, string?> selectListAnswersDictionary = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Boundary condition checks
+        if (QuestionnaireId <= 1)
+        {
+            Console.WriteLine("Invalid QuestionnaireId provided.");
+            return;
+        }
+        try
+        {
+            auditQuestionnaire = await AuditQuestionnaireService.GetAuditQuestionnaireDetailDTO(QuestionnaireId);
+            multipleChoiceQuestions = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByQuestionnaireId(QuestionnaireId);
+            openQuestions = await AuditQuestionnaireService.GetOpenQuestionDTOsByQuestionnaireId(QuestionnaireId);
+            selectListQuestionDTOs = await AuditQuestionnaireService.GetSelectListQuestionDTOsByQuestionnaireId(QuestionnaireId);
+
+            InitializeChoiceAnswersDictionary(choiceAnswersDictionary, multipleChoiceQuestions);
+            InitializeOpenQuestionAnswersDictionary(openQuestionAnswersDictionary, openQuestions);
+            InitializeSelectListQuestionAnswersDictionary(selectListAnswersDictionary, selectListQuestionDTOs);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private void InitializeChoiceAnswersDictionary(Dictionary<string, string?> questionAnswersDictionary, List<MultipleChoiceQuestionDTO> multipleChoiceQuestions)
+    {
+        // Input validation
+        if (multipleChoiceQuestions == null || multipleChoiceQuestions.Count == 0)
+        {
+            return; // If the input is empty，return
+        }
+
+        foreach (var choice in multipleChoiceQuestions)
+        {
+            // empty check
+            if (string.IsNullOrEmpty(choice.QuestionText) || string.IsNullOrEmpty(choice.OptionText))
+            {
+                continue; // Skip invalid data
+            }
+
+            // Split options and remove empty entries
+            var options = choice.OptionText.Split(";", StringSplitOptions.RemoveEmptyEntries);
+            if (options.Length == 0)
+            {
+                continue; // If no options, skip this choice
+            }
+
+            var value = new string('0', options.Length);
+            if (!questionAnswersDictionary.ContainsKey(choice.QuestionText!))
+            {
+                questionAnswersDictionary.TryAdd(choice.QuestionText!, value);
+            }
+        }
+    }
+
+    private void InitializeOpenQuestionAnswersDictionary(Dictionary<string, string?> questionAnswersDictionary, List<OpenQuestionDTO> openQuestions)
+    {
+        if (openQuestions == null || openQuestions.Count == 0)
+        {
+            return; // If input is empty，return
+        }
+
+        try
+        {
+            questionAnswersDictionary = openQuestions
+                .Where(openQuestion => openQuestion.QuestionText != null && openQuestion.AnswerText != null)
+                .ToDictionary(
+                    openQuestion => openQuestion.QuestionText!,
+                    openQuestion => openQuestion.AnswerText,
+                    StringComparer.Ordinal //Option: string comparer
+                );
+
+            foreach (var entry in questionAnswersDictionary)
+            {
+                Console.WriteLine($"QuestionText: {entry.Key}, AnswerText: {entry.Value}");
+            }
+        }
+        catch (ArgumentException ex)
+        {
+            // Handle the exception: Dictionary contains duplicate keys
+            Console.WriteLine("Dictionary exists duplicate QuestionText，can not be added：" + ex.Message);
+            throw; // throw the exception
+        }
+        catch (Exception ex)
+        {
+            // Catch other possible exceptions
+            Console.WriteLine("An unknown error occurred.：" + ex.Message);
+            throw; // Decide whether to re-throw the exception based on actual needs
+        }
+
+    }
+
+    private void InitializeSelectListQuestionAnswersDictionary(Dictionary<string, string?> questionAnswersDictionary, List<SelectListQuestionDTO> selectListQuestionDTOs)
+    {
+        if (selectListQuestionDTOs == null || selectListQuestionDTOs.Count == 0)
+        {
+            return; 
+        }
+
+        try
+        {
+            questionAnswersDictionary = selectListQuestionDTOs
+                .Where(selectListQuestion => selectListQuestion.QuestionText != null && selectListQuestion.AnswerText != null)
+                .ToDictionary(
+                    selectListQuestion => selectListQuestion.QuestionText!,
+                    selectListQuestion => selectListQuestion.AnswerText,
+                    StringComparer.Ordinal 
+                );
+
+            foreach (var entry in questionAnswersDictionary)
+            {
+                Console.WriteLine($"Selcet List QuestionText: {entry.Key}, AnswerText: {entry.Value}");
+            }
+
+        }
+        catch (ArgumentException ex)
+        {
+            Console.WriteLine("Dictionary exists duplicate QuestionText，can not be added: " + ex.Message);
+            throw; 
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Unknown error：" + ex.Message);
+            throw; 
+        }
+    }
+
+    private void HandelChoiceOptionSelection(string questionText, int optionIndex, string optionValue)
+    {
+        Console.WriteLine($"Question: {questionText}, Option Index: {optionIndex}, Option Value: {optionValue}");
+        // Check if the key exists in the choiceAnswersDictionary dictionary
+        if (!choiceAnswersDictionary.ContainsKey(questionText))
+        {
+            throw new KeyNotFoundException($"The key '{questionText}' does not exist in the dictionary.");
+        }
+
+        // Get the current answer string
+        string antwserString = choiceAnswersDictionary[questionText]!;
+
+        // Check if optionIndex is out of range
+        if (optionIndex < 0 || optionIndex >= antwserString!.Length)
+        {
+            throw new IndexOutOfRangeException($"The optionIndex '{optionIndex}' is out of range for the answer string '{antwserString}'.");
+        }
+
+
+        // Use StringBuilder
+        var stringBuilder = new System.Text.StringBuilder(antwserString);
+
+        // Base on the optionValue, update the corresponding character in the stringBuilder
+        if (string.Equals(optionValue, "True", StringComparison.OrdinalIgnoreCase))
+        {
+            stringBuilder[optionIndex] = '1';
+        }
+        else
+        {
+            stringBuilder[optionIndex] = '0';
+        }
+
+        choiceAnswersDictionary[questionText] = stringBuilder.ToString();
+        Console.WriteLine($"choiceAnswersDictionary 2: {choiceAnswersDictionary.Count}, key-value: {choiceAnswersDictionary[questionText]}"); //antwserString: 2, kay - value: 0000
+    }
+
+    private void HandelOpenQuestionAnswerUpdate(string questionText, ChangeEventArgs e)
+    {
+        Console.WriteLine($"Question: {questionText}, Answer Text: {e.Value!.ToString()}");
+        
+        string? openQuestionAnwser = e.Value.ToString();
+        if (string.IsNullOrEmpty(openQuestionAnwser))
+        {
+            Console.WriteLine($"openQuestionAnwser is null or empty");
+            return;
+        }
+
+        try
+        {
+            if (!openQuestionAnswersDictionary.ContainsKey(questionText))
+            {
+                Console.WriteLine($"openQuestionAnwser is null or empty");
+
+            }
+            openQuestionAnswersDictionary[questionText] = openQuestionAnwser;
+            Console.WriteLine($"Updated openQuestionAnwser: {openQuestionAnswersDictionary[questionText]}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private void HandleSelectChange(string questionText, ChangeEventArgs e)
+    {
+        Console.WriteLine($"Question: {questionText}, Answer Text: {e.Value!.ToString()}");
+        try
+        {
+            GetSelectListAnwser(questionText, e);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error in HandleSelectChange: {ex.Message}");
+            
+        }
+    }
+
+    private void GetSelectListAnwser(string question, ChangeEventArgs e)
+    {
+        string? anwser = e.Value?.ToString()!;
+        if (string.IsNullOrEmpty(anwser))
+        {
+            Console.WriteLine($"openQuestionAnwser is null or empty");
+            return;
+        }
+
+        try
+        {
+            if (!selectListAnswersDictionary.ContainsKey(question))
+            {
+                Console.WriteLine($"openQuestionAnwser is null or empty");
+
+            }
+            selectListAnswersDictionary[question] = anwser;
+            Console.WriteLine($"Updated selectListAnswer: {selectListAnswersDictionary[question]}");
+            
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private string[] GetValidOptions(string optionText)
+    {
+        if (string.IsNullOrEmpty(optionText))
+        {
+            return Array.Empty<string>();
+        }
+
+        return optionText.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries).Where(opt => !string.IsNullOrWhiteSpace(opt)).ToArray();
+    }
+
+    private List<string> GetSelectedOptions(string[] options)
+    {
+        var selectedOptions = new List<string> { "Selecteer een waarde." };
+        selectedOptions.AddRange(options);
+        return selectedOptions;
+    }
+
+    private async Task HandleUpdateAuditQuestionnaire()
+    {
+        Console.WriteLine("HandleUpdateAuditQuestionnaire");
+        await UpdateAuditQuestionnaire(QuestionnaireId, this.auditQuestionnaire!);
+        await UpdateChoiceQuestion(choiceAnswersDictionary, multipleChoiceQuestions);
+        await UpdateOpenQuestion(openQuestionAnswersDictionary!, openQuestions);
+        await UpdateSelectListQuestion(selectListAnswersDictionary!, selectListQuestionDTOs);
+    }
+
+    private async Task UpdateAuditQuestionnaire(int id, AuditQuestionnaireDetailDTO auditQuestionnaireDetailDTO)
+    {
+        if (id == 0 || auditQuestionnaireDetailDTO == null)
+        {
+            Console.WriteLine("Invalid input parameters.");
+            return;
+        }
+        try
+        {
+            AuditQuestionnaireDetailDTO updateAuditQuestionnaireDetailDTO = new AuditQuestionnaireDetailDTO
+                {
+                    Id = auditQuestionnaireDetailDTO!.Id,
+                    Name = auditQuestionnaireDetailDTO.Name,
+                    Description = auditQuestionnaireDetailDTO.Description,
+                    Region = auditQuestionnaireDetailDTO.Region,
+                    CreatedBy = auditQuestionnaireDetailDTO.CreatedBy,
+                    UpdatedBy = GetEmployeeId(),
+                    DeletedBy = auditQuestionnaireDetailDTO.DeletedBy,
+                    CreatedDate = auditQuestionnaireDetailDTO.CreatedDate,
+                    SubmissionDeadline = auditQuestionnaireDetailDTO.SubmissionDeadline,
+                    SubmittedBySupervisorsText = auditQuestionnaireDetailDTO.SubmittedBySupervisorsText,
+                    ApprovedByProjetManagerId = auditQuestionnaireDetailDTO.ApprovedByProjetManagerId,
+                    IsStarted = auditQuestionnaireDetailDTO.IsStarted,
+                    IsCompleted = auditQuestionnaireDetailDTO.IsCompleted
+                };
+
+            // var response = await AuditQuestionnaireService.UpdateAuditQuestionnaire(id, updateAuditQuestionnaireDetailDTO);
+            Console.WriteLine($"Updating audit questionnaire with ID: {id}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in UpdateAuditQuestionnaire: {ex.Message}");
+        }
+    }
+
+    private async Task UpdateChoiceQuestion(Dictionary<string, string?> answersDictionary, List<MultipleChoiceQuestionDTO> multipleChoiceQuestions)
+    {
+        if (answersDictionary == null || multipleChoiceQuestions == null || !answersDictionary.Any() || !multipleChoiceQuestions.Any())
+        {
+            LogError("Input parameters are null or empty.");
+            return;
+        }
+
+        if (AuditQuestionnaireService == null)
+        {
+            LogError("AuditQuestionnaireService is not initialized.", null);
+            return;
+        }
+
+        // Convert the question list to a dictionary with QuestionText as the key
+        var questionDict = new Dictionary<string, MultipleChoiceQuestionDTO>();
+
+        try
+        {
+            questionDict = multipleChoiceQuestions.ToDictionary(q => q.QuestionText!, q => q);
+        }
+        catch (ArgumentException ex)
+        {
+            LogError($"Duplicate question texts found in the questions list. Error: {ex.Message}");
+            return;
+        }
+
+        foreach (var entry in answersDictionary)
+        {
+            if (questionDict.TryGetValue(entry.Key, out var question))
+            {
+                question.AnswerText = entry.Value;
+            }
+            else
+            {
+                LogWarning($"No matching question found for text: {entry.Key}");
+            }
+        }
+
+        foreach (var question in multipleChoiceQuestions)
+        {
+            try
+            {
+                MultipleChoiceQuestionDTO updateMultipleChoiceQuestionDTO = new MultipleChoiceQuestionDTO()
+                    {
+                        Id = question.Id,
+                        QuestionText = question.QuestionText,
+                        OptionText = question.OptionText,
+                        AnswerText = question.AnswerText,
+                        IsDisplay = question.IsDisplay,
+                        PriorityIndication = question.PriorityIndication,
+                        QuestionAuditQuestionnaireId = question.QuestionAuditQuestionnaireId,
+                    };
+                // await AuditQuestionnaireService.UpdateMultipleChoiceQuestion(question.Id, updateMultipleChoiceQuestionDTO);
+                Console.WriteLine($"Updated choice question: {updateMultipleChoiceQuestionDTO.QuestionText} | {updateMultipleChoiceQuestionDTO.AnswerText}");
+            }
+            catch (ArgumentNullException ane)
+            {
+                LogError($"Null argument provided while updating choice question. Question ID: {question.Id}. Error: {ane.Message}", ane);
+            }
+            catch (InvalidOperationException ioe)
+            {
+                LogError($"Invalid operation occurred while updating choice question. Question ID: {question.Id}. Error: {ioe.Message}", ioe);
+            }
+            catch (Exception ex)
+            {
+                LogError($"Unexpected exception occurred while updating choice question. Question ID: {question.Id}. Error: {ex.Message}", ex);
+            }
+        }
+
+
+    }
+
+    private async Task UpdateOpenQuestion(Dictionary<string, string> answersDictionary, List<OpenQuestionDTO> openQuestions)
+    {
+        if (answersDictionary == null || !answersDictionary.Any() || openQuestions == null || !openQuestions.Any())
+        {
+            LogError("Input parameters are null or empty.", null, "UpdateOpenQuestion");
+            return;
+        }
+
+        if (AuditQuestionnaireService == null)
+        {
+            LogError("AuditQuestionnaireService is not initialized.", null);
+            return;
+        }
+
+        Dictionary<string, OpenQuestionDTO> questionDict = new Dictionary<string, OpenQuestionDTO>();
+
+        try
+        {
+            questionDict = openQuestions.ToDictionary(q => q.QuestionText!, q => q);
+        }
+        catch (ArgumentException ex)
+        {
+            LogError($"Duplicate question texts found in the questions list. Error: {ex.Message}");
+            return;
+        }
+
+        bool hasErrors = false;
+
+        foreach (var entry in answersDictionary)
+        {
+            if (questionDict.TryGetValue(entry.Key, out var question))
+            {
+                question.AnswerText = entry.Value;
+            }
+            else
+            {
+                LogWarning($"No matching question found for text: {entry.Key}");
+            }
+        }
+
+        foreach (var question in openQuestions)
+        {
+            try
+            {
+                OpenQuestionDTO updateOpenQuestionDTO = new OpenQuestionDTO
+                    {
+                        Id = question.Id,
+                        QuestionText = question.QuestionText,
+                        AnswerText = question.AnswerText,
+                        IsDisplay = question.IsDisplay,
+                        PriorityIndication = question.PriorityIndication,
+                        QuestionAuditQuestionnaireId = question.QuestionAuditQuestionnaireId
+
+                    };
+                // await AuditQuestionnaireService.UpdateOpenQuestionDTO(question.Id, updateOpenQuestionDTO);
+                Console.WriteLine($"Updated open question: {updateOpenQuestionDTO.QuestionText} | {updateOpenQuestionDTO.AnswerText}");
+            }
+            catch (Exception ex)
+            {
+                LogError($"Exception occurred while updating open question: {question.QuestionText}. Error: {ex.Message}", ex, "UpdateOpenQuestion");
+                hasErrors = true; 
+                break; 
+            }
+        }
+
+        if (hasErrors)
+        {
+            LogError("One or more questions failed to update. Process terminated.", null, "UpdateOpenQuestion");
+        }
+
+    }
+
+    private async Task UpdateSelectListQuestion(Dictionary<string, string> answersDictionary, List<SelectListQuestionDTO> selectListQuestionDTOs)
+    {
+        if (answersDictionary == null || !answersDictionary.Any() || selectListQuestionDTOs == null || !selectListQuestionDTOs.Any())
+        {
+            LogError("Input parameters are null or empty.", null, "UpdateOpenQuestion");
+            return;
+        }
+
+        if (AuditQuestionnaireService == null)
+        {
+            LogError("AuditQuestionnaireService is not initialized.", null);
+            return;
+        }
+
+        Dictionary<string, SelectListQuestionDTO> questionDict = new Dictionary<string, SelectListQuestionDTO>();
+
+        try
+        {
+            questionDict = selectListQuestionDTOs.ToDictionary(q => q.QuestionText!, q => q);
+        }
+        catch (ArgumentException ex)
+        {
+            LogError($"Duplicate question texts found in the questions list. Error: {ex.Message}");
+            return;
+        }
+
+        bool hasErrors = false;
+
+        foreach (var entry in answersDictionary)
+        {
+            if (questionDict.TryGetValue(entry.Key, out var question))
+            {
+                question.AnswerText = entry.Value;
+            }
+            else
+            {
+                LogWarning($"No matching question found for text: {entry.Key}");
+            }
+        }
+
+        foreach (var question in selectListQuestionDTOs)
+        {
+            try
+            {
+                SelectListQuestionDTO updateSelectedQuestion = new SelectListQuestionDTO
+                    {
+                        Id = question.Id,
+                        QuestionText = question.QuestionText,
+                        OptionText = question.OptionText,
+                        AnswerText = question.AnswerText,
+                        IsDisplay = question.IsDisplay,
+                        PriorityIndication = question.PriorityIndication,
+                        QuestionAuditQuestionnaireId = question.QuestionAuditQuestionnaireId
+                    };
+
+                // await AuditQuestionnaireService.UpdateSelectListQuestionDTO(question.Id, updateSelectedQuestion);
+                Console.WriteLine($"Updated select list question: {updateSelectedQuestion.QuestionText} | {updateSelectedQuestion.AnswerText}");
+            }
+            catch (Exception ex)
+            {
+                LogError($"Exception occurred while updating open question: {question.QuestionText}. Error: {ex.Message}", ex, "UpdateOpenQuestion");
+                hasErrors = true; 
+                break; 
+            }
+        }
+
+        if (hasErrors)
+        {
+            LogError("One or more questions failed to update. Process terminated.", null, "UpdateOpenQuestion");
+        }
+
+    }
+
+    private int GetEmployeeId()
+    {
+        // Get the user ID from the authentication system
+        // var userId = User.Identity?.Name;
+        // if (userId != null)
+        // {
+        //     Save user id to the components
+        //     UserId = userId;
+        // }
+        return 3;
+    }
+
+    private void LogError(string message, Exception exception = null, object context = null)
+    {
+        var logMessage = $"ERROR: {message}";
+        if (context != null)
+        {
+            // logMessage += $"\nContext: {Newtonsoft.Json.JsonConvert.SerializeObject(context)}";
+        }
+        if (exception != null)
+        {
+            logMessage += $"\nStackTrace: {exception.StackTrace}";
+        }
+        Console.WriteLine(logMessage); 
+    }
+
+    // Helper method for logging warnings
+    private void LogWarning(string message, object context = null)
+    {
+        var logMessage = $"WARNING: {message}";
+        if (context != null)
+        {
+            // logMessage += $"\nContext: {Newtonsoft.Json.JsonConvert.SerializeObject(context)}";
+        }
+        Console.WriteLine(logMessage);
+    }
+
+}

@@ -1,0 +1,120 @@
+﻿@page "/AuditQuestionnaires/ProjectManager"
+
+@using System.Net.Http;
+@using System.Net.Http.Json;
+@using System.Threading.Tasks;
+@using DNC.ProjectAudit.Application.CQRS.Audits
+@using DNC.ProjectAudit.EmployeeClient.Services
+@inject HttpClient httpClient
+@inject NavigationManager Navigation
+
+@inject AuditQuestionnaireService AuditQuestionnaireService;
+
+<PageTitle>@PageName</PageTitle>
+
+<h3>@PageName</h3>
+
+@if(questionnaires is not null)
+{
+    <p><em>Loading questions...</em></p>
+}
+else
+{
+    <Grid TItem="AuditQuestionnaireDTO"
+          AllowFiltering="true"
+          AllowPaging="true"
+          AllowSorting="true"
+          AutoHidePaging="true"
+          Class="table table-hover table-bordered table-striped"
+          DataProvider="AuditQuestionnaireDTODataProvider"
+          PageSize="10"
+          PageSizeSelectorVisible="true"
+          PageSizeSelectorItems="@(new int[] { 5,10,20 })"
+          Responsive="true"
+          Unit="Unit.Px">
+
+        <GridColumns>
+            <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Id" PropertyName="Id" SortString="Id" SortKeySelector="item => item.Id" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
+                @context.Id
+            </GridColumn>
+            <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Name" PropertyName="Name" SortString="Name" SortKeySelector="item => item.Name" Class="text-break">
+                @context.Name
+            </GridColumn>
+            <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Region" PropertyName="Region" SortString="Region" SortKeySelector="item => item.Region" FilterTextboxWidth="100">
+                @context.Region
+            </GridColumn>
+            <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="IsCompleted" PropertyName="IsCompleted">
+                @context.IsCompleted
+            </GridColumn>
+            <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Action" PropertyName="Id" Filterable=false Sortable=false>
+                <Button TItem="AuditQuestionnaireDTO" Class="btn btn-outline-primary" Size="ButtonSize.Small" @onclick="() => HandleGetQuestionnaireDTO(context.Id)">
+                    <Icon Name="IconName.Eyeglasses"></Icon>
+                </Button>
+
+                <Button TItem="AuditQuestionnaireDTO" Class="btn btn-outline-success" Size="ButtonSize.Small" @onclick="() => HandleGetQuestionnaireDTOProjectManager(context.Id)">
+                    <Icon Name="IconName.Pencil"></Icon>
+                </Button>
+            </GridColumn>
+        </GridColumns>
+
+    </Grid>
+}
+
+@code {
+    private const string PageName = "AuditQuestionnaires of Project Manager";
+    private string? ProjectManagerNameId { get; set; }
+    private IEnumerable<AuditQuestionnaireDTO>? questionnaires;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            this.GetPojectManagerNameTextAndId();
+            const string apiEndpointOfQuestionnaires = "AuditQuestionnaires/Quick";
+            using var cancellationTokenSource = new CancellationTokenSource();
+            var cancellationToken = cancellationTokenSource.Token;
+            var request = await this.httpClient.GetAsync(apiEndpointOfQuestionnaires, cancellationToken);
+            if (request.IsSuccessStatusCode)
+            {
+                Console.WriteLine(request.StatusCode);
+            }
+            else
+            {
+                Console.WriteLine(request.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task<GridDataProviderResult<AuditQuestionnaireDTO>> AuditQuestionnaireDTODataProvider(GridDataProviderRequest<AuditQuestionnaireDTO> request)
+    {
+        if (request == null) throw new ArgumentNullException(nameof(request));
+
+        if (questionnaires is null)
+            questionnaires = await AuditQuestionnaireService.GetAuditQuestionnaireDTOsWithEndingText(this.ProjectManagerNameId!);
+
+        Console.WriteLine(questionnaires.First().Name);
+
+        return await Task.FromResult(request.ApplyTo(questionnaires!));
+    }
+
+    private void GetPojectManagerNameTextAndId()
+    {
+        this.ProjectManagerNameId = "BrunoPeeters_3";
+        Console.WriteLine(ProjectManagerNameId);
+    }
+
+    private void HandleGetQuestionnaireDTO(int id)
+    {
+        Navigation.NavigateTo($"/AuditQuestionnaire/{id}");
+    }
+
+    private void HandleGetQuestionnaireDTOProjectManager(int id)
+    {
+        Navigation.NavigateTo($"/AuditQuestionnaire/ProjectManager/{id}");
+    }
+
+}

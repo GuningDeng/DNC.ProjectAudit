@@ -1,0 +1,217 @@
+﻿@page "/Auditquestionnaire/{QuestionnaireId:int}"
+
+@using System.Net.Http;
+@using System.Net.Http.Json;
+@using System.Threading.Tasks;
+@using DNC.ProjectAudit.Application.CQRS.Audits
+@using DNC.ProjectAudit.Application.CQRS.Audits.MultipleChoiceQuestions
+@using DNC.ProjectAudit.Application.CQRS.Audits.OpenQuestions
+@using DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
+@using DNC.ProjectAudit.EmployeeClient.Services
+
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject AuditQuestionnaireService AuditQuestionnaireService
+
+@if (auditQuestionnaire is null)
+{
+    <p><em>Loading questions...</em></p>
+}
+else
+{
+    <div class="container">
+        <h3>AuditQuestionnaire</h3>
+        <div class="mt-5">
+            @*
+            <Card>
+                <CardBody>
+                    <CardTitle><b>@auditQuestionnaire.Name</b></CardTitle>
+                    <CardText>Gewest: @auditQuestionnaire.Region</CardText>
+                    <CardText>Bechrijving: @auditQuestionnaire.Description</CardText>
+                    <CardText>Deadline: @auditQuestionnaire.SubmissionDeadline</CardText>
+                    <CardText>Gestart:
+                        @(auditQuestionnaire.IsStarted ? "Gestart" : "Nog niet gestart")
+                    </CardText>
+                    <hr class="mt-5 mb-5" />
+                    <CardSubTitle><b>Multiple Choice Vragen:</b></CardSubTitle>
+                    @if (multipleChoiceQuestions!.Count > 0)
+                    {
+                        int index = 1;
+                        @foreach (var question in multipleChoiceQuestions)
+                        {
+                            string[] answers = question.OptionText!.Split(";");
+                            <div class="bt-5">
+                                <b>@index. </b>@question.QuestionText
+                            </div>
+                            @foreach(string str in answers)
+                            {
+                                <div class="form-check bm-5">
+                                    <input class="form-check-input" type="checkbox" value="" id="@str" disabled>
+                                    <label class="form-check-label" for="@str">
+                                        @str
+                                    </label>
+                                </div>
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        <CardText>Geen Multiple Choice Vragen</CardText>
+                    }
+                    <div class="d-flex justify-content-end">
+                        <Button Color="ButtonColor.Primary" To="/AuditQuestionnaires" Type="ButtonType.Link">AuditQuestionnaires</Button>
+                    </div>
+
+                </CardBody>
+            </Card>
+            *@
+            <div class="bm-3">
+                <h5><b>@auditQuestionnaire.Name</b></h5>
+                <div>Beschrijving: @auditQuestionnaire.Description</div>
+                <div>Gewest: @auditQuestionnaire.Region</div>
+                <div>Deadline: @auditQuestionnaire.SubmissionDeadline</div>
+                <div>
+                    Gestart: @(auditQuestionnaire.IsStarted ? "Gestart" : "Nog niet gestart")
+                </div>
+                <hr class="mt-5 mb-5" />
+                <div class="mb-5">
+                    <div class="mb-3"><b>Multiple Choice Vragen</b></div>
+                    <div>
+                        @if (multipleChoiceQuestions!.Any())
+                        {
+                            int index = 1;
+                            @foreach (var question in multipleChoiceQuestions)
+                            {
+                                string[] options = question.OptionText!.Split(";");
+                                <div class="mt-3">
+                                    <b>@index. </b>@question.QuestionText
+                                </div>
+                                @foreach (string option in options)
+                                {
+                                    <div class="form-check bm-5">
+                                        <input class="form-check-input" type="checkbox" value="" id="@option" disabled>
+                                        <label class="form-check-label" for="@option">
+                                            @option
+                                        </label>
+                                    </div>
+
+                                }
+                                index++;
+
+                            }
+                        }
+                        else
+                        {
+                            <p>Geen Multiple Choice Vragen</p>
+                        }
+
+                    </div>
+                </div>
+
+                <div class="mb-5">
+                    <div class="mb-3"><b>Open Vragen</b></div>
+                    <div>
+                        @if (openQuestions.Any())
+                        {
+                            int index = 1;
+                            foreach (var question in openQuestions)
+                            {
+                                <div class="mb-3">
+                                    <div class="mb-3">
+                                        <b>@index. </b>@question.QuestionText
+                                    </div>
+                                    <textarea class="form-control" placeholder="@question.AnswerText" rows="3" disabled />
+                                    
+                                </div>
+                                index++;
+                            }
+                        }
+                        else
+                        {
+                            <p>Geen Open Vragen</p>
+                        }
+                    </div>
+                </div>
+                <div class="mb-5">
+                    <div class="mb-3"><b>Selectielijst</b></div>
+                    <div>
+                        @if (selectListQuestionDTOs.Any())
+                        {
+                            int index = 1;
+                            foreach (var question in selectListQuestionDTOs)
+                            {
+                                string[] options = question.OptionText!.Split(";");
+                                <div class="mb-3">
+                                    <div class="mb-3">
+                                        <b>@index. </b>@question.QuestionText
+                                    </div>
+                                    <div class="mb-3">
+                                        <select class="form-select">
+                                            @foreach (var option in options)
+                                            {
+                                                <option value="@option">@option</option>
+                                            }
+
+                                        </select>
+                                    </div>
+
+                                </div>
+                                index++;
+                            }
+                        }
+                        else
+                        {
+                            <p>Geen Selectielijst</p>
+                        }
+                    </div>
+                </div>
+
+                <div style="height:56px">
+                </div>
+                <div class="d-flex justify-content-end">
+                    <a href="/AuditQuestionnaires" class="btn btn-primary">Auditquestionnaires</a>
+                </div>
+
+                <div style="height:128px"></div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int QuestionnaireId { get; set; }
+    private const string PageName = "AuditQuestionnaire" ;
+    private const string apiEndpoint = "AuditQuestionnaires/{0}/Quick";
+    private AuditQuestionnaireDTO? auditQuestionnaire;
+    private List<MultipleChoiceQuestionDTO> multipleChoiceQuestions = new();
+    private List<OpenQuestionDTO> openQuestions = new();
+    private List<SelectListQuestionDTO> selectListQuestionDTOs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        string url = string.Format(apiEndpoint, this.QuestionnaireId);
+        try
+        {
+            var response = await Http.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                auditQuestionnaire = await AuditQuestionnaireService.GetAuditQuestionnaireDTO(this.QuestionnaireId);
+                multipleChoiceQuestions = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
+                openQuestions = await AuditQuestionnaireService.GetOpenQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
+                selectListQuestionDTOs = await AuditQuestionnaireService.GetSelectListQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
+            }
+            else
+            {
+                Console.WriteLine(response.StatusCode);
+            }
+        }
+        catch (HttpRequestException e)
+        {
+            Console.WriteLine(e.Message);
+        }  
+    }
+
+}

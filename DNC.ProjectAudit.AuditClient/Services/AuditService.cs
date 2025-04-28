@@ -17,7 +17,9 @@ namespace DNC.ProjectAudit.AuditClient.Services
 
         public async Task<AuditorDTO> GetAuditorAsync()
         {
-            return await _httpClient.GetFromJsonAsync<AuditorDTO>($"auditors/Auditor");
+            const string ApiEndPoint = "Auditors/Auditor";
+            var auditor = await _httpClient.GetFromJsonAsync<AuditorDTO>(ApiEndPoint);
+            return auditor!;
         }
 
          

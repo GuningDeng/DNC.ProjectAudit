@@ -61,12 +61,12 @@
 </div>
 
 @code{
-    private AuditorDTO? auditorDTO;
+    // private AuditorDTO? auditorDTO;
     private List<AuditQuestionnaireDetailDTO>? auditQuestionnaireDetailDTOs;
 
     protected override async Task OnInitializedAsync()
     {
-        auditorDTO = await AuditService.GetAuditorAsync();
+        // auditorDTO = await AuditService.GetAuditorAsync();
         auditQuestionnaireDetailDTOs = await AuditQuestionnaireService.GetAuditQuestionnaireDetailDTOs();
     }
 

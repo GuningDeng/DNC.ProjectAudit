@@ -16,15 +16,15 @@
 <h3>AuditQuestionnaires</h3>
 <div style="height:32px"></div>
 <Grid TItem="AuditQuestionnaireDTO"
-    AllowFiltering="true"
-    AllowPaging="true"
-    AllowSorting="true"
-    Class="table table-hover table-bordered table-striped"
-    DataProvider="AuditQuestionnaireDataProvider"
-    PageSize="10"
-    Responsive="true"
-    Unit="Unit.Px"
-    EmptyText="No records to display">
+AllowFiltering="true"
+AllowPaging="true"
+AllowSorting="true"
+Class="table table-hover table-bordered table-striped"
+DataProvider="AuditQuestionnaireDataProvider"
+PageSize="10"
+Responsive="true"
+Unit="Unit.Px"
+EmptyText="No records to display">
 
     <GridColumns>
         <GridColumn TItem="AuditQuestionnaireDTO" HeaderText="Id" PropertyName="Id" SortString="Id" SortKeySelector="item => item.Id" FilterTextboxWidth="50" HeaderTextAlignment="Alignment.Center" TextAlignment="Alignment.Center">
@@ -51,15 +51,24 @@
 
 @code {
     private const string PageName = "AuditQuestionnaires";
-    
+
     private IEnumerable<AuditQuestionnaireDTO> auditQuestionnaires = default!;
 
     private async Task<GridDataProviderResult<AuditQuestionnaireDTO>> AuditQuestionnaireDataProvider(GridDataProviderRequest<AuditQuestionnaireDTO> request)
     {
-        if (auditQuestionnaires is null) // pull employees only one time for client-side filtering, sorting, and paging
-            auditQuestionnaires = await AuditQuestionnaireService.GetAuditQuestionnaireDTOs();   // call a service or an API to pull the employees
+        
+        if (auditQuestionnaires is null)
+        {
+            var response = await AuditQuestionnaireService.GetAuditQuestionnaireDTOs();
+            if (response == null)
+            {
+                Console.WriteLine("No data");
 
-        return await Task.FromResult(request.ApplyTo(auditQuestionnaires));
+            }
+            auditQuestionnaires = response!;
+            
+        }
+        return await Task.FromResult(request.ApplyTo(auditQuestionnaires!));
     }
 
     private void HandlerNavigateToAuditQuestionnaire(int id)

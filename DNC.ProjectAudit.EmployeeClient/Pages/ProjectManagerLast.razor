@@ -185,24 +185,44 @@ else
             var response = await Http.GetAsync(apiEndpoint);
             if (response.IsSuccessStatusCode)
             {
-                auditQuestionnaireDetailDTO = await AuditQuestionnaireService.GetAuditQuestionnaireDTOByName(name);
+                
+                var task1 = AuditQuestionnaireService.GetAuditQuestionnaireDTOByName(name);
+                auditQuestionnaireDetailDTO = await task1;
                 auditQuestionnaireId = auditQuestionnaireDetailDTO.Id;
+                var task2 = AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByQuestionnaireId(auditQuestionnaireId);
+                var task3 = AuditQuestionnaireService.GetOpenQuestionDTOsByQuestionnaireId(auditQuestionnaireId);
+                var task4 = AuditQuestionnaireService.GetSelectListQuestionDTOsByQuestionnaireId(auditQuestionnaireId);
+                await Task.WhenAll(task2, task3, task4);
+                multipleChoiceQuestions = await task2;
+                openQuestions = await task3;
+                selectListQuestionDTOs = await task4;
 
-                multipleChoiceQuestions = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByQuestionnaireId(auditQuestionnaireId);
-                openQuestions = await AuditQuestionnaireService.GetOpenQuestionDTOsByQuestionnaireId(auditQuestionnaireId);
-                selectListQuestionDTOs = await AuditQuestionnaireService.GetSelectListQuestionDTOsByQuestionnaireId(auditQuestionnaireId);
+                LogResult(auditQuestionnaireDetailDTO != null, "auditQuestionnaireDetailDTO");
+                LogResult(multipleChoiceQuestions != null, "multipleChoiceQuestions");
+                LogResult(openQuestions != null, "openQuestions");
+                LogResult(selectListQuestionDTOs != null, "selectListQuestionDTOs");
 
-                InitializeChoiceAnswersDictionary(choiceAnswersDictionary, multipleChoiceQuestions);
+                if (multipleChoiceQuestions != null)
+                {
+                    InitializeChoiceAnswersDictionary(choiceAnswersDictionary, multipleChoiceQuestions);
+                }
+                
 
                 foreach (KeyValuePair<string, string?> entry in choiceAnswersDictionary)
                 {
                     Console.WriteLine($"choice :: {entry.Key} | {entry.Value}");
                 }
 
-                InitializeOpenQuestionAnswersDictionary(openQuestionAnswersDictionary, openQuestions);
-
-                InitializeSelectListQuestionAnswersDictionary(selectListAnswersDictionary, selectListQuestionDTOs);
-
+                if (openQuestions != null)
+                {
+                    InitializeOpenQuestionAnswersDictionary(openQuestionAnswersDictionary, openQuestions);
+                }
+                
+                if  (selectListQuestionDTOs != null)
+                {
+                    InitializeSelectListQuestionAnswersDictionary(selectListAnswersDictionary, selectListQuestionDTOs);
+                }
+                
             }
             else
             {
@@ -217,21 +237,18 @@ else
 
     private void OnOptionSelected(string question, int optionIndex, string selectedOption)
     {
-        // Console.WriteLine($"Question(i) Text: {question}");
-        // Console.WriteLine($"Option(j) Index: {optionIndex}");
-        // Console.WriteLine($"Selected(e?.Value) Option: {selectedOption}");
-
+        
         Console.WriteLine($"choiceAnswersDictionary: {choiceAnswersDictionary.Count}, key-value: {choiceAnswersDictionary[question]}"); //antwserString: 2, kay - value: 0000
-        // 检查 choiceAnswersDictionary 是否包含指定的键
+        // Check if the specified key exists in the dictionary.
         if (!choiceAnswersDictionary.ContainsKey(question))
         {
             throw new KeyNotFoundException($"The key '{question}' does not exist in the dictionary.");
         }
 
-        // 获取当前答案字符串
-        string antwserString = choiceAnswersDictionary[question];
+        // Get the current answer string.
+        string antwserString = choiceAnswersDictionary[question]!;
 
-        // 检查 optionIndex 是否超出范围
+        // Check if the optionIndex is within the range of the answer string.
         if (optionIndex < 0 || optionIndex >= antwserString.Length)
         {
             throw new IndexOutOfRangeException($"The optionIndex '{optionIndex}' is out of range for the answer string '{antwserString}'.");
@@ -252,10 +269,10 @@ else
         // antwserString = new string(chs);
         // Console.WriteLine($"antwserString 2: {antwserString}");
 
-        // 使用 StringBuilder 提高字符串操作效率
+        // Using StringBuilder to improve the efficiency of string modification
         var stringBuilder = new System.Text.StringBuilder(antwserString);
 
-        // 根据 selectedOption 修改对应位置的字符
+        // Modify the character at the corresponding position according to the selectedOption
         if (string.Equals(selectedOption, "True", StringComparison.OrdinalIgnoreCase))
         {
             stringBuilder[optionIndex] = '1';
@@ -300,10 +317,7 @@ else
         {
             Console.WriteLine($"Error: {ex.Message}");
         }
-
-        // openQuestionAnswersDictionary[question] = openQuestionAnwser;
-
-        // Console.WriteLine($"openAnwser: {openQuestionAnswersDictionary[question]}");
+                
     }
 
     private string[] GetValidOptions(string optionText)
@@ -332,7 +346,7 @@ else
         catch (Exception ex)
         {
             Console.Error.WriteLine($"Error in HandleSelectChange: {ex.Message}");
-            // 可以根据需求显示错误提示给用户
+            // Show error message to user
         }
     }
 
@@ -388,160 +402,12 @@ else
             updateAuditQuestionnaireDetailDTO.ApprovedByProjetManagerId= this.auditQuestionnaireDetailDTO.ApprovedByProjetManagerId;
             updateAuditQuestionnaireDetailDTO.IsStarted = this.auditQuestionnaireDetailDTO.IsStarted;
             updateAuditQuestionnaireDetailDTO.IsCompleted = true;
+                      
 
-            // foreach (KeyValuePair<string, string> entry in choiceAnswersDictionary)
-            // {
-            //     foreach (var question in multipleChoiceQuestions!)
-            //     {
-            //         if (entry.Key == question.QuestionText)
-            //         {
-            //             question.AnswerText = entry.Value;
-            //         }
-            //     }
-            // }
+            // Update choice questions
+            await UpdateChoiceQuestion(choiceAnswersDictionary!, multipleChoiceQuestions!);
 
-            // foreach (var choice in multipleChoiceQuestions!)
-            // {
-            //     var response = AuditQuestionnaireService.UpdateMUpdateMultipleChoiceQuestion(choice.Id, choice);
-            //     if (response.IsCompletedSuccessfully)
-            //     {
-            //         Console.WriteLine($"Updated multiple choice question: {choice.QuestionText}");
-            //     }
-            //     else
-            //     {
-            //         Console.WriteLine($"Error updating multiple choice question: {choice.QuestionText}");
-            //     }
-            // }
-
-            // if (choiceAnswersDictionary == null || multipleChoiceQuestions == null)
-            // {
-            //     Console.WriteLine("Input data is null. Please provide valid dictionaries.");
-            //     return;
-            // }
-
-            // 将 multipleChoiceQuestions 转换为字典，以 QuestionText 为键
-            // var questionDict = multipleChoiceQuestions.ToDictionary(q => q.QuestionText, q => q);
-
-            // foreach (var entry in choiceAnswersDictionary)
-            // {
-            //     if (questionDict.TryGetValue(entry.Key, out var question))
-            //     {
-            //         question.AnswerText = entry.Value;
-            //     }
-            //     else
-            //     {
-            //         Console.WriteLine($"No matching question found for text: {entry.Key}");
-            //     }
-            // }
-
-            // foreach (var choice in multipleChoiceQuestions)
-            // {
-            //     try
-            //     {
-            //         var response = AuditQuestionnaireService.UpdateMUpdateMultipleChoiceQuestion(choice.Id, choice);
-            //         if (response.IsCompletedSuccessfully)
-            //         {
-            //             Console.WriteLine($"Updated multiple choice question: {choice.QuestionText}");
-            //         }
-            //         else
-            //         {
-            //             Console.WriteLine($"Error updating multiple choice question: {choice.QuestionText}. Reason: {response.ErrorMessage}");
-            //         }
-            //         Console.WriteLine($"Updated multiple choice question: {choice.QuestionText} | {choice.AnswerText}");
-            //     }
-            //     catch (Exception ex)
-            //     {
-            //         Console.WriteLine($"Exception occurred while updating multiple choice question: {choice.QuestionText}. Error: {ex.Message}");
-            //     }
-            // }
-
-            // update open questions
-            // if (openQuestionAnswersDictionary == null || openQuestions == null)
-            // {
-            //     Console.WriteLine("openQuestionAnswersDictionary is null or empty.");
-            //     return;
-            // }
-
-            // var openQuestionDict = openQuestions.ToDictionary(q => q.QuestionText, q => q);
-            // foreach (var entry in openQuestionAnswersDictionary)
-            // {
-            //     if (openQuestionDict.TryGetValue(entry.Key, out var question))
-            //     {
-            //         question.AnswerText = entry.Value;
-            //     }
-            //     else
-            //     {
-            //         Console.WriteLine($"No matching question found for text: {entry.Key}");
-            //     }
-            // }
-
-            // foreach (var question in openQuestions)
-            // {
-            //     try
-            //     {
-            //         var response = AuditQuestionnaireService.UpdateOpenQuestionDTO(question.Id, question);
-            //         if (response.IsCompletedSuccessfully)
-            //         {
-            //             Console.WriteLine($"Updated open question: {question.QuestionText}");
-            //         }
-            //         else
-            //         {
-            //             Console.WriteLine($"Error updating open question: {question.QuestionText}. Reason: {response.ErrorMessage}");
-            //         }
-            //         Console.WriteLine($"Updated open question: {question.QuestionText} | {question.AnswerText}");
-            //     }
-            //     catch (Exception ex)
-            //     {
-            //         Console.WriteLine($"Exception occurred while updating open question: {question.QuestionText}. Error: {ex.Message}");
-            //     }
-            // }
-
-            // update select list questions
-            // if (selectListAnswersDictionary == null || selectListQuestionDTOs == null)
-            // {
-            //     Console.WriteLine("selectListAnswersDictionary is null or empty.");
-            //     return;
-            // }
-
-            // var selectListQuestionDict = selectListQuestionDTOs.ToDictionary(q => q.QuestionText, q => q);
-
-            // foreach (var entry in selectListAnswersDictionary)
-            // {
-            //     if (selectListQuestionDict.TryGetValue(entry.Key, out var question))
-            //     {
-            //         question.AnswerText = entry.Value;
-            //     }
-            //     else
-            //     {
-            //         Console.WriteLine($"No matching question found for text: {entry.Key}");
-            //     }
-            // }
-
-            // foreach (var question in selectListQuestionDTOs)
-            // {
-            //     try
-            //     {
-            //         var response = AuditQuestionnaireService.UpdateSelectListQuestionDTO(question.Id, question);
-            //         if (response.IsCompletedSuccessfully)
-            //         {
-            //             Console.WriteLine($"Updated select list question: {question.QuestionText}");
-            //         }
-            //         else
-            //         {
-            //             Console.WriteLine($"Error updating select list question: {question.QuestionText}. Reason: {response.Result.StatusCode}");
-            //         }
-            //         Console.WriteLine($"Updated select list question: {question.QuestionText} | {question.AnswerText}");
-            //     }
-            //     catch (Exception ex)
-            //     {
-            //         Console.WriteLine($"Exception occurred while updating select list question: {question.QuestionText}. Error: {ex.Message}");
-            //     }
-            // }
-
-            // 更新多选题
-            await UpdateChoiceQuestion(choiceAnswersDictionary, multipleChoiceQuestions);
-
-            // 更新开放题
+            // Update open questions
             await UpdateOpenQuestion(openQuestionAnswersDictionary!, openQuestions!);
 
         }
@@ -876,7 +742,7 @@ else
 
     }
 
-    // 日志记录方法（可替换为实际的日志框架）
+    // logger
     private void LogError(string message, Exception exception = null, object context = null)
     {
         var logMessage = $"ERROR: {message}";
@@ -891,7 +757,7 @@ else
         Console.WriteLine(logMessage); // 替换为实际的日志记录方式
     }
 
-    // 辅助方法：记录警告日志
+    // warning log
     private void LogWarning(string message, object context = null)
     {
         var logMessage = $"WARNING: {message}";
@@ -899,9 +765,17 @@ else
         {
             // logMessage += $"\nContext: {Newtonsoft.Json.JsonConvert.SerializeObject(context)}";
         }
-        Console.WriteLine(logMessage); // 替换为实际的日志记录方式
+        Console.WriteLine(logMessage); // 
     }
 
+    // result log
+    private void LogResult(bool success, string name)
+    {
+        if (success)
+            Console.WriteLine($"{name} retrieved successfully.");
+        else
+            Console.WriteLine($"Failed to retrieve {name}.");
+    }
     
 
 }

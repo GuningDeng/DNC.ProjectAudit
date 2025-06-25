@@ -122,7 +122,7 @@ else
                                         <b>@index. </b>@question.QuestionText
                                     </div>
                                     <textarea class="form-control" placeholder="@question.AnswerText" rows="3" disabled />
-                                    
+
                                 </div>
                                 index++;
                             }
@@ -194,19 +194,25 @@ else
     {
         string url = string.Format(apiEndpoint, this.QuestionnaireId);
         try
-        {
-            var response = await Http.GetAsync(url);
-            if (response.IsSuccessStatusCode)
-            {
-                auditQuestionnaire = await AuditQuestionnaireService.GetAuditQuestionnaireDTO(this.QuestionnaireId);
-                multipleChoiceQuestions = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
-                openQuestions = await AuditQuestionnaireService.GetOpenQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
-                selectListQuestionDTOs = await AuditQuestionnaireService.GetSelectListQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
-            }
-            else
-            {
-                Console.WriteLine(response.StatusCode);
-            }
+        {            
+            var task1 = AuditQuestionnaireService.GetAuditQuestionnaireDTO(this.QuestionnaireId);
+            var task2 = AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
+            var task3 = AuditQuestionnaireService.GetOpenQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
+            var task4 = AuditQuestionnaireService.GetSelectListQuestionDTOsByQuestionnaireId(this.QuestionnaireId);
+            
+            await Task.WhenAll(task1, task2, task3, task4);
+
+            auditQuestionnaire = await task1;
+            multipleChoiceQuestions = await task2;
+            openQuestions = await task3;
+            selectListQuestionDTOs = await task4;
+
+            Console.WriteLine("All tasks completed");
+            LogResult(auditQuestionnaire != null, "AuditQuestionnaire");
+            LogResult(multipleChoiceQuestions != null, "MultipleChoiceQuestions");
+            LogResult(openQuestions != null, "OpenQuestions");
+            LogResult(selectListQuestionDTOs != null, "SelectListQuestions");
+
         }
         catch (HttpRequestException e)
         {
@@ -214,4 +220,12 @@ else
         }  
     }
 
+
+    private void LogResult(bool success, string name)
+    {
+        if (success)
+            Console.WriteLine($"{name} retrieved successfully.");
+        else
+            Console.WriteLine($"Failed to retrieve {name}.");
+    }
 }

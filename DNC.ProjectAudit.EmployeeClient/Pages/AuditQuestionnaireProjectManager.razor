@@ -187,14 +187,30 @@ else
         }
         try
         {
-            auditQuestionnaire = await AuditQuestionnaireService.GetAuditQuestionnaireDetailDTO(QuestionnaireId);
-            multipleChoiceQuestions = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByQuestionnaireId(QuestionnaireId);
-            openQuestions = await AuditQuestionnaireService.GetOpenQuestionDTOsByQuestionnaireId(QuestionnaireId);
-            selectListQuestionDTOs = await AuditQuestionnaireService.GetSelectListQuestionDTOsByQuestionnaireId(QuestionnaireId);
+            var task1 = AuditQuestionnaireService.GetAuditQuestionnaireDetailDTO(QuestionnaireId);
+            var task2 = AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByQuestionnaireId(QuestionnaireId);
+            var task3 = AuditQuestionnaireService.GetOpenQuestionDTOsByQuestionnaireId(QuestionnaireId);
+            var task4 = AuditQuestionnaireService.GetSelectListQuestionDTOsByQuestionnaireId(QuestionnaireId);
 
-            InitializeChoiceAnswersDictionary(choiceAnswersDictionary, multipleChoiceQuestions);
-            InitializeOpenQuestionAnswersDictionary(openQuestionAnswersDictionary, openQuestions);
-            InitializeSelectListQuestionAnswersDictionary(selectListAnswersDictionary, selectListQuestionDTOs);
+            await Task.WhenAll(task1, task2, task3, task4);
+
+            auditQuestionnaire = await task1;
+            multipleChoiceQuestions = await task2;
+            openQuestions = await task3;
+            selectListQuestionDTOs = await task4;
+
+            LogResult(auditQuestionnaire != null, "AuditQuestionnaire");
+            LogResult(multipleChoiceQuestions != null, "MultipleChoiceQuestions");
+            LogResult(openQuestions != null, "OpenQuestions");
+            LogResult(selectListQuestionDTOs != null, "SelectListQuestions");
+
+            // Initialize dictionaries only if the corresponding collections are not null
+            if (multipleChoiceQuestions != null)
+                InitializeChoiceAnswersDictionary(choiceAnswersDictionary, multipleChoiceQuestions);
+            if (openQuestions != null)
+                InitializeOpenQuestionAnswersDictionary(openQuestionAnswersDictionary, openQuestions);
+            if (selectListQuestionDTOs != null)
+                InitializeSelectListQuestionAnswersDictionary(selectListAnswersDictionary, selectListQuestionDTOs);
 
         }
         catch (Exception ex)
@@ -723,6 +739,14 @@ else
             // logMessage += $"\nContext: {Newtonsoft.Json.JsonConvert.SerializeObject(context)}";
         }
         Console.WriteLine(logMessage);
+    }
+
+    private void LogResult(bool success, string name)
+    {
+        if (success)
+            Console.WriteLine($"{name} retrieved successfully.");
+        else
+            Console.WriteLine($"Failed to retrieve {name}.");
     }
 
 }

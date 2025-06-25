@@ -9,6 +9,8 @@
 @using DNC.ProjectAudit.Application.CQRS.Audits.SelectListQuestions
 @using DNC.ProjectAudit.AuditClient.Entities
 @using DNC.ProjectAudit.AuditClient.Services
+@using System.Threading
+
 @inject HttpClient httpClient
 @inject NavigationManager Navigation
 
@@ -107,7 +109,7 @@
                     }
 
                 }
-                
+
                 <h6 class="mt-5 mb-3 fw-bold">Selectielijst</h6>
                 if (this.QuestionnaireInfo.SelectListInfos!.Count == 0)
                 {
@@ -153,124 +155,183 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var request = await this.httpClient.GetAsync($"AuditQuestionnaires/{this.QuestionnaireId}");
-        if (request.IsSuccessStatusCode){
-            this.auditQuestionnaire = await AuditQuestionnaireService.GetAuditQuestionnaire(this.QuestionnaireId);
-            var choices = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
-            var opens = await AuditQuestionnaireService.GetOpenQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
-            var selectLists = await AuditQuestionnaireService.GetSelectListQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
-            this.auditQuestionnaire.MultipleChoiceQuestions = choices;
-            this.auditQuestionnaire.OpenQuestions = opens;
-            this.auditQuestionnaire.SelectListQuestions = selectLists;
+        // var request = await this.httpClient.GetAsync($"AuditQuestionnaires/{this.QuestionnaireId}");
+        // if (request.IsSuccessStatusCode){
+        //     this.auditQuestionnaire = await AuditQuestionnaireService.GetAuditQuestionnaire(this.QuestionnaireId);
+        //     var choices = await AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+        //     var opens = await AuditQuestionnaireService.GetOpenQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+        //     var selectLists = await AuditQuestionnaireService.GetSelectListQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+        //     this.auditQuestionnaire.MultipleChoiceQuestions = choices;
+        //     this.auditQuestionnaire.OpenQuestions = opens;
+        //     this.auditQuestionnaire.SelectListQuestions = selectLists;
 
-            String name = this.auditQuestionnaire.Name!;
+        //     String name = this.auditQuestionnaire.Name!;
+        //     QuestionnaireInfo!.Name = this.auditQuestionnaire.Name;
+
+        //     List<QuestionWithOptionInfoList> multipleChoiceInfos = new List<QuestionWithOptionInfoList>();
+
+        //     List<QuestionWithOptionInfoList> selectListInfos = new List<QuestionWithOptionInfoList>();
+
+        //     List<OpenQuestionInfo> openQuestionInfos = new List<OpenQuestionInfo>();
+
+        //     int index = 0;
+        //     foreach(var choice in choices)
+        //     {
+        //         QuestionWithOptionInfoList question = new QuestionWithOptionInfoList();
+        //         List<OptionInfo> multiOptionInfos = new List<OptionInfo>();
+
+        //         var options = choice.OptionText!.Split(";");
+        //         foreach(var option in options)
+        //         {
+        //             OptionInfo optionInfo = new OptionInfo();
+        //             optionInfo.Option = option;
+        //             optionInfo.IsSelected = false;
+        //             multiOptionInfos.Add(optionInfo);
+        //         }
+        //         question.QuestionText = choice.QuestionText;
+        //         question.Options = multiOptionInfos;
+        //         question.Index = index;
+        //         question.IsDisplay = choice.IsDisplay;
+        //         question.AnswerText = choice.AnswerText;
+        //         question.PriorityIndication = choice.PriorityIndication;
+        //         multipleChoiceInfos.Add(question);
+        //         index += 1;
+        //     }
+        //     foreach (var multi in multipleChoiceInfos)
+        //     {
+        //         Console.WriteLine($"multiOptionInfos :: {multi.Index} | {multi.Options!.Count}");
+        //         foreach(var opt in multi.Options)
+        //         {
+        //             Console.WriteLine($" :: {opt.Option}");
+        //         }
+        //     }
+
+        //     index = 0;
+
+        //     foreach(var selection in selectLists)
+        //     {
+        //         QuestionWithOptionInfoList question = new QuestionWithOptionInfoList();
+        //         List<OptionInfo> selecteOptionInfos = new List<OptionInfo>();
+        //         var options = selection.OptionText!.Split(";");
+        //         foreach (var option in options)
+        //         {
+        //             OptionInfo optionInfo = new OptionInfo();
+        //             optionInfo.Option = option;
+        //             optionInfo.IsSelected = false;
+        //             selecteOptionInfos.Add(optionInfo);
+        //         }
+        //         question.QuestionText = selection.QuestionText;
+        //         question.Options = selecteOptionInfos;
+        //         question.Index = index;
+        //         question.IsDisplay = selection.IsDisplay;
+        //         question.AnswerText = selection.AnswerText;
+        //         question.PriorityIndication = selection.PriorityIndication;
+        //         selectListInfos.Add(question);
+
+        //         index += 1;
+
+        //     }
+
+        //     foreach (var select in selectListInfos)
+        //     {
+        //         Console.WriteLine($"selectOptionInfos :: {select.Index} | {select.Options!.Count}");
+        //         foreach (var opt in select.Options)
+        //         {
+        //             Console.WriteLine($" :: {opt.Option}");
+        //         }
+        //     }
+
+        //     index = 0;
+        //     foreach(var question in opens)
+        //     {
+        //         OpenQuestionInfo openQuestionInfo = new OpenQuestionInfo();
+
+        //         openQuestionInfo.QuestionText = question.QuestionText;
+        //         openQuestionInfo.Index = index;
+        //         openQuestionInfo.IsDisplay = question.IsDisplay;
+        //         openQuestionInfo.AnswerText = question.AnswerText;
+        //         openQuestionInfo.PriorityIndication = question.PriorityIndication;
+
+        //         openQuestionInfos.Add(openQuestionInfo);
+
+        //         index += 1;
+        //     }
+
+        //     foreach (var quetion in openQuestionInfos)
+        //     {
+        //         Console.WriteLine($"openQuestionInfos :: {quetion.Index} | {quetion.QuestionText}");
+
+        //     }
+
+        //     QuestionnaireInfo.MultipleChoiceInfos = multipleChoiceInfos;
+        //     QuestionnaireInfo.SelectListInfos = selectListInfos;
+        //     QuestionnaireInfo.OpenQuestionInfos = openQuestionInfos;
+
+        //     Console.WriteLine($"QuestionnaireInfo :: {QuestionnaireInfo.Name} | {QuestionnaireInfo.MultipleChoiceInfos.Count} | {QuestionnaireInfo.SelectListInfos.Count} | {QuestionnaireInfo.OpenQuestionInfos.Count} ");
+
+        // }
+        // else{
+        //     Navigation.NavigateTo("/");
+        //     Console.WriteLine($"request.StatusCode :: {request.StatusCode}");
+        // }
+        try
+        {
+            var task1 = AuditQuestionnaireService.GetAuditQuestionnaire(this.QuestionnaireId);
+            var task2 = AuditQuestionnaireService.GetMultipleChoiceQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+            var task3 = AuditQuestionnaireService.GetOpenQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+            var task4 = AuditQuestionnaireService.GetSelectListQuestionDTOsByAuditQuestionnaireId(this.QuestionnaireId);
+
+            await Task.WhenAll(task1, task2, task3, task4);
+            // await Task.WhenAll(task1, task2, task3, task4);
+            this.auditQuestionnaire = await task1;
+            if (auditQuestionnaire == null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+
+            this.auditQuestionnaire.MultipleChoiceQuestions = await task2;
+            this.auditQuestionnaire.OpenQuestions = await task3;
+            this.auditQuestionnaire.SelectListQuestions = await task4;
+
+            Console.WriteLine("All tasks completed");
+            LogResult(auditQuestionnaire != null, "AuditQuestionnaire");
+            LogResult(auditQuestionnaire!.MultipleChoiceQuestions != null, "MultipleChoiceQuestions");
+            LogResult(auditQuestionnaire.OpenQuestions != null, "OpenQuestions");
+            LogResult(auditQuestionnaire.SelectListQuestions != null, "SelectListQuestions");
+
+            // String name = this.auditQuestionnaire.Name!;
+            if (QuestionnaireInfo == null)
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
             QuestionnaireInfo!.Name = this.auditQuestionnaire.Name;
 
-            List<QuestionWithOptionInfoList> multipleChoiceInfos = new List<QuestionWithOptionInfoList>();
-
-            List<QuestionWithOptionInfoList> selectListInfos = new List<QuestionWithOptionInfoList>();
-
-            List<OpenQuestionInfo> openQuestionInfos = new List<OpenQuestionInfo>();
-
-            int index = 0;
-            foreach(var choice in choices)
-            {
-                QuestionWithOptionInfoList question = new QuestionWithOptionInfoList();
-                List<OptionInfo> multiOptionInfos = new List<OptionInfo>();
-
-                var options = choice.OptionText!.Split(";");
-                foreach(var option in options)
-                {
-                    OptionInfo optionInfo = new OptionInfo();
-                    optionInfo.Option = option;
-                    optionInfo.IsSelected = false;
-                    multiOptionInfos.Add(optionInfo);
-                }
-                question.QuestionText = choice.QuestionText;
-                question.Options = multiOptionInfos;
-                question.Index = index;
-                question.IsDisplay = choice.IsDisplay;
-                question.AnswerText = choice.AnswerText;
-                question.PriorityIndication = choice.PriorityIndication;
-                multipleChoiceInfos.Add(question);
-                index += 1;
-            }
-            foreach (var multi in multipleChoiceInfos)
-            {
-                Console.WriteLine($"multiOptionInfos :: {multi.Index} | {multi.Options!.Count}");
-                foreach(var opt in multi.Options)
-                {
-                    Console.WriteLine($" :: {opt.Option}");
-                }
-            }
-
-            index = 0;
-
-            foreach(var selection in selectLists)
-            {
-                QuestionWithOptionInfoList question = new QuestionWithOptionInfoList();
-                List<OptionInfo> selecteOptionInfos = new List<OptionInfo>();
-                var options = selection.OptionText!.Split(";");
-                foreach (var option in options)
-                {
-                    OptionInfo optionInfo = new OptionInfo();
-                    optionInfo.Option = option;
-                    optionInfo.IsSelected = false;
-                    selecteOptionInfos.Add(optionInfo);
-                }
-                question.QuestionText = selection.QuestionText;
-                question.Options = selecteOptionInfos;
-                question.Index = index;
-                question.IsDisplay = selection.IsDisplay;
-                question.AnswerText = selection.AnswerText;
-                question.PriorityIndication = selection.PriorityIndication;
-                selectListInfos.Add(question);
-
-                index += 1;
-
-            }
-
-            foreach (var select in selectListInfos)
-            {
-                Console.WriteLine($"selectOptionInfos :: {select.Index} | {select.Options!.Count}");
-                foreach (var opt in select.Options)
-                {
-                    Console.WriteLine($" :: {opt.Option}");
-                }
-            }
-
-            index = 0;
-            foreach(var question in opens)
-            {
-                OpenQuestionInfo openQuestionInfo = new OpenQuestionInfo();
-
-                openQuestionInfo.QuestionText = question.QuestionText;
-                openQuestionInfo.Index = index;
-                openQuestionInfo.IsDisplay = question.IsDisplay;
-                openQuestionInfo.AnswerText = question.AnswerText;
-                openQuestionInfo.PriorityIndication = question.PriorityIndication;
-
-                openQuestionInfos.Add(openQuestionInfo);
-
-                index += 1;
-            }
-
-            foreach (var quetion in openQuestionInfos)
-            {
-                Console.WriteLine($"openQuestionInfos :: {quetion.Index} | {quetion.QuestionText}");
-
-            }
+            var multipleChoiceInfos = CreateMultipleChoiceInfos(auditQuestionnaire.MultipleChoiceQuestions);
+            var selectListInfos = CreateSelectListInfos(auditQuestionnaire.SelectListQuestions);
+            var openQuestionInfos = CreateOpenQuestionInfos(auditQuestionnaire.OpenQuestions);
 
             QuestionnaireInfo.MultipleChoiceInfos = multipleChoiceInfos;
             QuestionnaireInfo.SelectListInfos = selectListInfos;
             QuestionnaireInfo.OpenQuestionInfos = openQuestionInfos;
 
             Console.WriteLine($"QuestionnaireInfo :: {QuestionnaireInfo.Name} | {QuestionnaireInfo.MultipleChoiceInfos.Count} | {QuestionnaireInfo.SelectListInfos.Count} | {QuestionnaireInfo.OpenQuestionInfos.Count} ");
-
         }
-        else{
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("Request was canceled.");
             Navigation.NavigateTo("/");
-            Console.WriteLine($"request.StatusCode :: {request.StatusCode}");
+        }
+        catch (HttpRequestException httpEx)
+        {
+            Console.WriteLine($"Network error: {httpEx.Message}");
+            Navigation.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception :: {ex.Message}");
+            Navigation.NavigateTo("/");
         }
     }
 
@@ -288,5 +349,112 @@
     {
         Console.WriteLine($"New selection list :: {this.QuestionnaireId}");
     }    
+
+    private void LogResult(bool success, string name)
+    {
+        if (success)
+            Console.WriteLine($"{name} retrieved successfully.");
+        else
+            Console.WriteLine($"Failed to retrieve {name}.");
+    }
+
+    private List<QuestionWithOptionInfoList> CreateMultipleChoiceInfos(IEnumerable<MultipleChoiceQuestionDTO>? choices)
+    {
+        var result = new List<QuestionWithOptionInfoList>();
+        int index = 0;
+
+        foreach (var choice in choices ?? Enumerable.Empty<MultipleChoiceQuestionDTO>())
+        {
+            var question = new QuestionWithOptionInfoList
+            {
+                QuestionText = choice.QuestionText,
+                Options = ParseOptions(choice.OptionText),
+                Index = index++,
+                IsDisplay = choice.IsDisplay,
+                AnswerText = choice.AnswerText,
+                PriorityIndication = choice.PriorityIndication
+            };
+            result.Add(question);
+        }
+
+        LogQuestionInfos(result, "multiOptionInfos");
+        return result;
+    }
+
+    private List<QuestionWithOptionInfoList> CreateSelectListInfos(IEnumerable<SelectListQuestionDTO>? selections)
+    {
+        var result = new List<QuestionWithOptionInfoList>();
+        int index = 0;
+
+        foreach (var selection in selections ?? Enumerable.Empty<SelectListQuestionDTO>())
+        {
+            var question = new QuestionWithOptionInfoList
+            {
+                QuestionText = selection.QuestionText,
+                Options = ParseOptions(selection.OptionText),
+                Index = index++,
+                IsDisplay = selection.IsDisplay,
+                AnswerText = selection.AnswerText,
+                PriorityIndication = selection.PriorityIndication
+            };
+            result.Add(question);
+        }
+
+        LogQuestionInfos(result, "selectOptionInfos");
+        return result;
+    }
+
+    private List<OpenQuestionInfo> CreateOpenQuestionInfos(IEnumerable<OpenQuestionDTO>? questions)
+    {
+        var result = new List<OpenQuestionInfo>();
+        int index = 0;
+
+        foreach (var question in questions ?? Enumerable.Empty<OpenQuestionDTO>())
+        {
+            result.Add(new OpenQuestionInfo
+                {
+                    QuestionText = question.QuestionText,
+                    Index = index++,
+                    IsDisplay = question.IsDisplay,
+                    AnswerText = question.AnswerText,
+                    PriorityIndication = question.PriorityIndication
+                });
+        }
+
+        foreach (var q in result)
+        {
+            Console.WriteLine($"openQuestionInfos :: {q.Index} | {q.QuestionText}");
+        }
+
+        return result;
+    }
+
+    private List<OptionInfo> ParseOptions(string? optionText)
+    {
+        if (string.IsNullOrWhiteSpace(optionText))
+            return new List<OptionInfo>();
+
+        return optionText.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                         .Select(o => new OptionInfo
+                             {
+                                 Option = o.Trim(),
+                                 IsSelected = false
+                             }).ToList();
+    }
+
+    private void LogQuestionInfos(IEnumerable<QuestionWithOptionInfoList> list, string label)
+    {
+        foreach (var item in list)
+        {
+            Console.WriteLine($"{label} :: {item.Index} | {item.Options?.Count}");
+            if (item.Options != null)
+            {
+                foreach (var opt in item.Options)
+                {
+                    Console.WriteLine($" :: {opt.Option}");
+                }
+            }
+        }
+    }
 
 }
